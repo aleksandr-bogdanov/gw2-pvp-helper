@@ -14,6 +14,14 @@ async function api(path, options = {}) {
         headers: { 'Content-Type': 'application/json' },
         ...options,
     });
+    if (!res.ok) {
+        let message = `${res.status} ${res.statusText}`;
+        try {
+            const body = await res.json();
+            if (body.detail) message = body.detail;
+        } catch { /* response wasn't JSON */ }
+        throw new Error(message);
+    }
     return res.json();
 }
 
