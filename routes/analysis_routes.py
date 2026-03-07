@@ -372,7 +372,7 @@ async def parse_scoreboard(request: ScoreboardRequest):
             image_path = f.name
 
         scoreboard_agent = Agent(
-            ClaudeCodeModel(model="opus", timeout=120, cwd=Path("/tmp")),
+            ClaudeCodeModel(model="sonnet", timeout=120, cwd=Path("/tmp")),
             output_type=ParsedScoreboard,
             retries=3,
             system_prompt=(
