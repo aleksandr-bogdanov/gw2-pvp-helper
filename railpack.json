@@ -5,7 +5,10 @@
   },
   "steps": {
     "install-claude-cli": {
-      "commands": ["npm install -g @anthropic-ai/claude-code"]
+      "commands": [
+        "npm install -g @anthropic-ai/claude-code",
+        "ln -sf $(which claude) /usr/local/bin/claude"
+      ]
     }
   }
 }
