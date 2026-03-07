@@ -27,64 +27,25 @@ body {
     min-height: 100vh;
 }
 
+/* Header */
 header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 20px;
+    padding: 10px 20px;
     border-bottom: 1px solid var(--border);
     background: var(--bg-card);
 }
 
 header h1 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--accent);
 }
 
-nav {
+.header-actions {
     display: flex;
-    gap: 4px;
-}
-
-.nav-btn {
-    background: transparent;
-    color: var(--text-dim);
-    border: 1px solid transparent;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.15s;
-}
-
-.nav-btn:hover {
-    color: var(--text);
-    background: var(--bg-hover);
-}
-
-.nav-btn.active {
-    color: var(--text);
-    background: var(--bg-hover);
-    border-color: var(--border);
-}
-
-main {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.view {
-    display: none;
-}
-
-.view.active {
-    display: block;
-}
-
-.hidden {
-    display: none !important;
+    gap: 8px;
 }
 
 /* Buttons */
@@ -92,26 +53,40 @@ main {
     background: var(--accent);
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     transition: opacity 0.15s;
 }
 
-.btn-primary:hover {
-    opacity: 0.85;
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
 }
 
 .btn-danger {
     background: transparent;
     color: var(--danger);
     border: 1px solid var(--danger);
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.15s;
 }
 
@@ -120,250 +95,422 @@ main {
     color: white;
 }
 
-/* Match Controls */
-.match-controls {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
+main {
+    padding: 16px 20px;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-/* Enemy Slots */
-.enemy-slots {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-}
+.hidden { display: none !important; }
 
-@media (max-width: 900px) {
-    .enemy-slots {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-@media (max-width: 600px) {
-    .enemy-slots {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-.enemy-slot {
-    background: var(--bg-card);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
+/* Paste Status */
+.paste-status {
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
     text-align: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    min-height: 140px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
 }
 
-.enemy-slot:hover {
-    border-color: var(--accent);
-    background: var(--bg-hover);
-}
-
-.enemy-slot.filled {
-    border-color: var(--accent);
-}
-
-.enemy-slot .slot-number {
-    font-size: 12px;
-    color: var(--text-dim);
-}
-
-.enemy-slot .profession-name {
-    font-size: 18px;
-    font-weight: 600;
-}
-
-.enemy-slot .spec-name {
-    font-size: 14px;
+.paste-status.loading {
+    background: rgba(110, 86, 207, 0.15);
+    border: 1px solid var(--accent);
     color: var(--accent);
 }
 
-.enemy-slot .slot-placeholder {
-    font-size: 32px;
-    color: var(--text-dim);
+.paste-status.success {
+    background: rgba(48, 164, 108, 0.15);
+    border: 1px solid var(--success);
+    color: var(--success);
 }
 
-.enemy-slot .player-input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    text-align: center;
-}
-
-.enemy-slot .build-select {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-}
-
-.enemy-slot .slot-clear {
-    background: none;
-    border: none;
+.paste-status.error {
+    background: rgba(229, 72, 77, 0.15);
+    border: 1px solid var(--danger);
     color: var(--danger);
-    cursor: pointer;
-    font-size: 12px;
-    padding: 2px 6px;
 }
 
-/* Pickers */
-.picker {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.85);
+/* Comp Strip */
+.comp-strip {
+    margin-bottom: 12px;
+}
+
+.slot-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.comp-slot {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 90px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 100;
-    padding: 20px;
+    gap: 4px;
+    position: relative;
 }
 
-.picker h3 {
-    margin-bottom: 20px;
-    font-size: 20px;
-}
-
-.picker-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    max-width: 500px;
-    width: 100%;
-}
-
-.picker-btn {
-    background: var(--bg-card);
-    border: 2px solid var(--border);
-    color: var(--text);
-    padding: 20px 16px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 500;
-    min-height: 64px;
-    transition: all 0.15s;
-}
-
-.picker-btn:hover {
+.comp-slot:hover {
     border-color: var(--accent);
     background: var(--bg-hover);
-    transform: scale(1.03);
+}
+
+.comp-slot.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+.comp-slot.filled {
+    border-left-width: 4px;
+}
+
+.comp-slot.threat-HUNT { border-left-color: var(--hunt); }
+.comp-slot.threat-RESPECT { border-left-color: var(--respect); }
+.comp-slot.threat-AVOID { border-left-color: var(--avoid); }
+
+.slot-number {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.slot-placeholder {
+    font-size: 24px;
+    color: var(--text-dim);
+}
+
+.slot-spec {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.slot-profession {
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+.slot-player {
+    font-size: 10px;
+    color: var(--accent);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.slot-player-input {
+    width: 90%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    text-align: center;
+}
+
+.slot-player-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.slot-clear {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px;
+}
+
+.slot-clear:hover { color: var(--danger); }
+
+/* Player autocomplete */
+.autocomplete-wrapper {
+    position: relative;
+    width: 90%;
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    z-index: 50;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.autocomplete-item {
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.autocomplete-item:hover {
+    background: var(--bg-hover);
+}
+
+.autocomplete-threat {
+    font-size: 10px;
+    color: var(--warning);
+}
+
+/* Inline Picker */
+.inline-picker {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.picker-header {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.picker-search {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.picker-search:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.picker-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.picker-close:hover { color: var(--text); border-color: var(--text-dim); }
+
+.picker-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.picker-group-label {
+    width: 100%;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 0 2px;
+    border-top: 1px solid var(--border);
+}
+
+.picker-group-label:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.picker-option {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.12s;
+}
+
+.picker-option:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.picker-option.highlighted {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+}
+
+/* Strategy Banner */
+.strategy-banner {
+    background: var(--bg-card);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+}
+
+.banner-recommendation {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.banner-roles {
+    font-size: 13px;
+    color: var(--text-dim);
 }
 
 /* Strategy Cards */
 .strategy-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
-    margin-top: 16px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 1100px) {
+    .strategy-cards { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 700px) {
+    .strategy-cards { grid-template-columns: repeat(2, 1fr); }
+    .slot-row { grid-template-columns: repeat(3, 1fr); }
 }
 
 .strategy-card {
     background: var(--bg-card);
     border: 2px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    border-left-width: 4px;
 }
 
-.strategy-card .card-header {
+.strategy-card.threat-HUNT { border-left-color: var(--hunt); }
+.strategy-card.threat-RESPECT { border-left-color: var(--respect); }
+.strategy-card.threat-AVOID { border-left-color: var(--avoid); }
+
+.card-top {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
 }
 
-.strategy-card .card-spec {
-    font-size: 16px;
+.card-spec {
+    font-size: 15px;
     font-weight: 600;
 }
 
-.strategy-card .card-profession {
-    font-size: 12px;
+.card-profession {
+    font-size: 11px;
     color: var(--text-dim);
 }
 
-.strategy-card .card-build {
-    font-size: 12px;
+.card-player {
+    font-size: 11px;
     color: var(--accent);
-}
-
-.strategy-card .card-player {
-    font-size: 12px;
-    color: var(--text-dim);
     font-style: italic;
 }
 
-.threat-badge {
-    padding: 4px 10px;
-    border-radius: 20px;
+.card-badges {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.focus-order {
     font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 700;
+}
+
+.threat-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.threat-AVOID {
-    background: var(--avoid);
-    color: white;
-}
-
-.threat-RESPECT {
-    background: var(--respect);
-    color: black;
-}
-
-.threat-HUNT {
-    background: var(--hunt);
-    color: white;
-}
+.threat-AVOID { background: var(--avoid); color: white; }
+.threat-RESPECT { background: var(--respect); color: black; }
+.threat-HUNT { background: var(--hunt); color: white; }
 
 .card-section {
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .card-section .label {
     color: var(--text-dim);
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 .card-section .value {
     color: var(--text);
 }
 
+.card-section.secondary {
+    opacity: 0.65;
+}
+
+.stolen-skill {
+    font-size: 11px;
+    background: var(--bg);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border-left: 2px solid var(--accent);
+    opacity: 0.7;
+}
+
+.stolen-skill .skill-name {
+    font-weight: 600;
+    color: var(--accent);
+}
+
 .card-gameplan {
     list-style: none;
     padding: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+    margin-top: auto;
 }
 
 .card-gameplan li {
-    font-size: 13px;
-    padding: 3px 0;
-    padding-left: 12px;
+    font-size: 11px;
+    padding: 2px 0 2px 10px;
     position: relative;
+    color: var(--text-dim);
 }
 
 .card-gameplan li::before {
@@ -374,129 +521,76 @@ main {
     font-weight: bold;
 }
 
-.focus-order {
-    font-size: 11px;
-    color: var(--text-dim);
-    font-weight: 600;
-}
-
-.stolen-skill {
-    font-size: 12px;
-    background: var(--bg);
-    padding: 6px 10px;
-    border-radius: 6px;
-    border-left: 3px solid var(--accent);
-}
-
-.stolen-skill .skill-name {
-    font-weight: 600;
-    color: var(--accent);
-}
-
-/* General Strategy */
-.general-strategy {
-    background: var(--bg-card);
-    border: 2px solid var(--accent);
-    border-radius: 10px;
-    padding: 16px 20px;
-}
-
-.general-strategy .recommendation {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 6px;
-}
-
-.general-strategy .role-summary {
-    font-size: 14px;
-    color: var(--text-dim);
-}
-
-/* Do Not Hit */
-.do-not-hit-section {
-    margin-top: 20px;
-}
-
-.do-not-hit-section h3 {
-    color: var(--danger);
-    margin-bottom: 10px;
-    font-size: 16px;
-}
-
-.dnh-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 8px;
-}
-
-.dnh-item {
+/* Do Not Hit Strip */
+.do-not-hit-strip {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-left: 3px solid var(--danger);
-    border-radius: 6px;
-    padding: 10px 14px;
-    font-size: 13px;
-}
-
-.dnh-item .dnh-skill {
-    font-weight: 600;
-    color: var(--danger);
-}
-
-.dnh-item .dnh-effect {
-    color: var(--text-dim);
-    margin: 4px 0;
-}
-
-.dnh-item .dnh-action {
-    color: var(--success);
-}
-
-/* Players View */
-.player-search {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.player-search input {
-    flex: 1;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.player-search input:focus {
-    outline: none;
-    border-color: var(--accent);
-}
-
-.player-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 14px;
+    padding: 10px 16px;
+}
+
+.dnh-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--danger);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     margin-bottom: 8px;
 }
 
-.player-card .player-name {
-    font-size: 16px;
-    font-weight: 600;
+.dnh-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
-.player-card .player-info {
-    font-size: 13px;
-    color: var(--text-dim);
-    margin-top: 4px;
+.dnh-pill {
+    background: rgba(229, 72, 77, 0.12);
+    border: 1px solid rgba(229, 72, 77, 0.3);
+    color: var(--danger);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: default;
+    position: relative;
 }
 
-/* No results */
-.no-data {
-    text-align: center;
+.dnh-pill .dnh-duration {
     color: var(--text-dim);
-    padding: 40px;
-    font-size: 14px;
+    margin-left: 4px;
+}
+
+/* Tooltip */
+.dnh-pill .dnh-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+    max-width: 280px;
+    white-space: normal;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.dnh-pill:hover .dnh-tooltip {
+    display: block;
+}
+
+.dnh-tooltip-effect {
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
+.dnh-tooltip-action {
+    color: var(--success);
 }

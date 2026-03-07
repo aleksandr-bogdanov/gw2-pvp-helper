@@ -1,8 +1,11 @@
+import os
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -12,7 +15,36 @@ from routes.data_routes import router as data_router
 from routes.player_routes import router as player_router
 
 BASE_DIR = Path(__file__).parent
-VERSION = "0.1.0"
+VERSION = "0.2.0"
+
+AUTH_USERNAME = os.environ.get("APP_USERNAME", "")
+AUTH_PASSWORD = os.environ.get("APP_PASSWORD", "")
+AUTH_ENABLED = bool(AUTH_USERNAME and AUTH_PASSWORD)
+
+security = HTTPBasic(auto_error=False)
+
+
+async def verify_credentials(
+    request: Request,
+    credentials: HTTPBasicCredentials | None = Depends(security),
+):
+    if not AUTH_ENABLED:
+        return None
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    username_ok = secrets.compare_digest(credentials.username.encode(), AUTH_USERNAME.encode())
+    password_ok = secrets.compare_digest(credentials.password.encode(), AUTH_PASSWORD.encode())
+    if not (username_ok and password_ok):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials
 
 
 @asynccontextmanager
@@ -21,7 +53,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="GW2 PvP Helper", lifespan=lifespan)
+app = FastAPI(title="GW2 PvP Helper", lifespan=lifespan, dependencies=[Depends(verify_credentials)])
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
