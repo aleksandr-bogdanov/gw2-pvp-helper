@@ -107,25 +107,35 @@ function setupPaste() {
             }
 
             // Fill slots with parsed enemies
+            let specsDetected = 0;
             for (let i = 0; i < 5; i++) {
                 if (i < result.enemies.length) {
                     const enemy = result.enemies[i];
                     state.enemies[i] = {
                         profession_id: enemy.profession_id,
-                        spec_id: null,
+                        spec_id: enemy.spec_id || null,
                         build_id: null,
                         player_name: enemy.character_name || null,
                     };
+                    if (enemy.spec_id) specsDetected++;
                 } else {
                     state.enemies[i] = null;
                 }
             }
 
             renderSlots();
-            showPasteStatus(
-                `Detected ${result.enemies.length} enemies. Click each slot to select elite spec.`,
-                'success'
-            );
+            if (specsDetected === result.enemies.length) {
+                showPasteStatus(
+                    `Detected ${result.enemies.length} enemies with elite specs. Click a slot to change or select build.`,
+                    'success'
+                );
+                debounceAnalyze();
+            } else {
+                showPasteStatus(
+                    `Detected ${result.enemies.length} enemies. Click each slot to select elite spec.`,
+                    'success'
+                );
+            }
         } catch (err) {
             showPasteStatus(`Failed to parse: ${err.message}`, 'error');
         }
