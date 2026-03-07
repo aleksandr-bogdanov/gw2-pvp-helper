@@ -325,20 +325,19 @@ async def parse_scoreboard(request: ScoreboardRequest):
     except Exception:
         return {"enemies": [], "error": "Invalid base64 image data"}
 
-    scoreboard_agent = Agent(
-        ClaudeCodeModel(model="haiku"),
-        output_type=ParsedScoreboard,
-        system_prompt=(
-            "Extract the ENEMY team from this GW2 PvP scoreboard screenshot. "
-            "The scoreboard shows two teams (red/blue backgrounds). Extract the team that is NOT "
-            "the user's team — typically the right side or bottom section. "
-            "Return each player's character name and base profession "
-            "(guardian/warrior/revenant/ranger/thief/engineer/necromancer/elementalist/mesmer). "
-            "If you cannot determine the profession, make your best guess based on the class icon."
-        ),
-    )
-
     try:
+        scoreboard_agent = Agent(
+            ClaudeCodeModel(model="haiku"),
+            output_type=ParsedScoreboard,
+            system_prompt=(
+                "Extract the ENEMY team from this GW2 PvP scoreboard screenshot. "
+                "The scoreboard shows two teams (red/blue backgrounds). Extract the team that is NOT "
+                "the user's team — typically the right side or bottom section. "
+                "Return each player's character name and base profession "
+                "(guardian/warrior/revenant/ranger/thief/engineer/necromancer/elementalist/mesmer). "
+                "If you cannot determine the profession, make your best guess based on the class icon."
+            ),
+        )
         image = BinaryContent(data=image_data, media_type=request.media_type)
         result = await scoreboard_agent.run(["Parse this scoreboard", image])
 
