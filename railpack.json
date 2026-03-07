@@ -6,8 +6,7 @@
   "steps": {
     "install-claude-cli": {
       "commands": [
-        "npm install -g @anthropic-ai/claude-code",
-        "ln -sf /usr/local/bin/mise /mise/shims/claude"
+        "npm install -g @anthropic-ai/claude-code"
       ]
     }
   }
