@@ -283,65 +283,6 @@ async def analyze_team_comp(request: TeamCompRequest):
 
 # ── Screenshot Parsing ──
 
-SPEC_TO_PROFESSION = {
-    # Guardian (blue icons)
-    "core_guardian": "guardian",
-    "dragonhunter": "guardian",
-    "firebrand": "guardian",
-    "willbender": "guardian",
-    "herald": "guardian",
-    # Warrior (gold icons)
-    "core_warrior": "warrior",
-    "berserker": "warrior",
-    "spellbreaker": "warrior",
-    "bladesworn": "warrior",
-    "vindicator": "warrior",
-    # Revenant (red icons)
-    "core_revenant": "revenant",
-    "herald_rev": "revenant",
-    "renegade": "revenant",
-    "vindicator_rev": "revenant",
-    # Ranger (green icons)
-    "core_ranger": "ranger",
-    "druid": "ranger",
-    "soulbeast": "ranger",
-    "untamed": "ranger",
-    # Thief (gray icons)
-    "core_thief": "thief",
-    "daredevil": "thief",
-    "deadeye": "thief",
-    "specter": "thief",
-    # Engineer (orange icons)
-    "core_engineer": "engineer",
-    "scrapper": "engineer",
-    "holosmith": "engineer",
-    "mechanist": "engineer",
-    # Necromancer (dark green icons)
-    "core_necromancer": "necromancer",
-    "reaper": "necromancer",
-    "scourge": "necromancer",
-    "harbinger": "necromancer",
-    # Elementalist (red-orange icons)
-    "core_elementalist": "elementalist",
-    "tempest": "elementalist",
-    "weaver": "elementalist",
-    "catalyst": "elementalist",
-    # Mesmer (purple icons)
-    "core_mesmer": "mesmer",
-    "chronomancer": "mesmer",
-    "mirage": "mesmer",
-    "virtuoso": "mesmer",
-}
-
-
-class ParsedEnemy(BaseModel):
-    character_name: str
-    spec: str
-
-
-class ParsedScoreboard(BaseModel):
-    enemies: list[ParsedEnemy]
-
 
 class ScoreboardRequest(BaseModel):
     image: str  # base64 encoded
@@ -350,151 +291,16 @@ class ScoreboardRequest(BaseModel):
 
 @router.post("/parse-scoreboard")
 async def parse_scoreboard(request: ScoreboardRequest):
-    import tempfile
+    from routes.cv_parser import parse_scoreboard_hybrid
 
     try:
-        from claude_code_model import ClaudeCodeModel
-        from pydantic_ai import Agent
-    except ImportError:
-        logger.warning("claude-code-model or pydantic-ai not installed")
-        return {"enemies": [], "error": "Screenshot parsing dependencies not available"}
-
-    try:
-        image_data = base64.b64decode(request.image)
+        base64.b64decode(request.image)
     except Exception:
-        return {"enemies": [], "error": "Invalid base64 image data"}
+        return {"red_team": [], "blue_team": [], "user_team_color": "red", "error": "Invalid base64 image data"}
 
-    # Save image to temp file so the CLI can read it (avoids broken stream-json)
-    ext = request.media_type.split("/")[-1] if "/" in request.media_type else "png"
     try:
-        with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False, dir="/tmp") as f:
-            f.write(image_data)
-            image_path = f.name
-
-        import time as _time
-
-        total_start = _time.perf_counter()
-        logger.info(
-            "=== SCOREBOARD PARSE START === image_size=%d bytes, media_type=%s, temp_file=%s",
-            len(image_data), request.media_type, image_path,
-        )
-
-        # Step 1: Haiku describes the scoreboard in freeform text (vision task)
-        vision_agent = Agent(
-            ClaudeCodeModel(model="haiku", timeout=120, cwd=Path("/tmp"), verbose=True),
-            output_type=str,
-            system_prompt=(
-                "You are analyzing a Guild Wars 2 PvP scoreboard screenshot.\n\n"
-                "SCOREBOARD LAYOUT:\n"
-                "- Two colored sections: RED team (top/left) and BLUE team (bottom/right)\n"
-                "- Each section has exactly 5 player rows\n"
-                "- One player name is highlighted/bolded — that is the user's character\n\n"
-                "ICON POSITIONS:\n"
-                "- Red team: spec icons appear to the LEFT of the player name\n"
-                "- Blue team: spec icons appear to the RIGHT of the player name\n\n"
-                "The scoreboard shows ELITE SPECIALIZATION icons, not base profession icons. "
-                "Icons are color-coded by profession. Identify the specific elite spec.\n\n"
-                "GUARDIAN (blue icons): core_guardian (flame/shield), dragonhunter (bow/wings), "
-                "firebrand (tome/book), willbender (angular sword), herald (spear/golden light)\n"
-                "WARRIOR (gold icons): core_warrior (sword), berserker (flaming helmet), "
-                "spellbreaker (crossed daggers), bladesworn (gunsaber/katana), vindicator (greatsword)\n"
-                "REVENANT (red icons): core_revenant (misty), herald_rev (dragon face), "
-                "renegade (shattered emblem), vindicator_rev (upward wings)\n"
-                "RANGER (green icons): core_ranger (leaf), druid (celestial/star), "
-                "soulbeast (merged beast face), untamed (feral claw marks)\n"
-                "THIEF (gray icons): core_thief (dagger), daredevil (staff/bo), "
-                "deadeye (crosshair/scope), specter (ghostly lantern)\n"
-                "ENGINEER (orange icons): core_engineer (wrench/gear), scrapper (hammer/lightning), "
-                "holosmith (holographic sun), mechanist (jade mech face)\n"
-                "NECROMANCER (dark green icons): core_necromancer (skull), reaper (hooded skull/scythe), "
-                "scourge (sand shade/torch), harbinger (pistol/flask)\n"
-                "ELEMENTALIST (red-orange icons): core_elementalist (flame), tempest (storm circle), "
-                "weaver (intertwined strands), catalyst (jade sphere)\n"
-                "MESMER (purple icons): core_mesmer (butterfly/swirl), chronomancer (clock/hourglass), "
-                "mirage (illusory axe/haze), virtuoso (floating blade)\n\n"
-                "YOUR TASK:\n"
-                "1. Find the highlighted/bolded player name to identify the user's team\n"
-                "2. List ALL 10 players you see — for each, state their team (red/blue), "
-                "character name, icon color, icon shape description, and your best guess "
-                "at the elite spec\n"
-                "3. Clearly state which team is the user's team and which is the enemy team\n\n"
-                "Write your analysis in plain text. Be detailed about what you see."
-            ),
-        )
-        step1_start = _time.perf_counter()
-        logger.info("Step 1: Starting vision analysis (haiku, timeout=120s)")
-        vision_result = await vision_agent.run(
-            f"Read and analyze the scoreboard screenshot at {image_path}"
-        )
-        raw_analysis = vision_result.output
-        step1_elapsed = _time.perf_counter() - step1_start
-        logger.info(
-            "Step 1 complete in %.1fs. Raw analysis (%d chars):\n%s",
-            step1_elapsed, len(raw_analysis), raw_analysis,
-        )
-
-        # Step 2: Haiku parses the freeform analysis into structured output (text-only)
-        parser_agent = Agent(
-            ClaudeCodeModel(model="haiku", timeout=60, cwd=Path("/tmp"), verbose=True),
-            output_type=ParsedScoreboard,
-            retries=3,
-            system_prompt=(
-                "You parse Guild Wars 2 scoreboard analysis into structured data.\n\n"
-                "You will receive a freeform text description of a GW2 PvP scoreboard. "
-                "Extract the ENEMY team players (the team that is NOT the user's team).\n\n"
-                "Valid spec IDs (use these exactly):\n"
-                "Guardian: core_guardian, dragonhunter, firebrand, willbender, herald\n"
-                "Warrior: core_warrior, berserker, spellbreaker, bladesworn, vindicator\n"
-                "Revenant: core_revenant, herald_rev, renegade, vindicator_rev\n"
-                "Ranger: core_ranger, druid, soulbeast, untamed\n"
-                "Thief: core_thief, daredevil, deadeye, specter\n"
-                "Engineer: core_engineer, scrapper, holosmith, mechanist\n"
-                "Necromancer: core_necromancer, reaper, scourge, harbinger\n"
-                "Elementalist: core_elementalist, tempest, weaver, catalyst\n"
-                "Mesmer: core_mesmer, chronomancer, mirage, virtuoso\n\n"
-                "Return exactly 5 enemies with character_name and spec fields. "
-                "The spec field must be one of the valid spec IDs above."
-            ),
-        )
-        step2_start = _time.perf_counter()
-        logger.info("Step 2: Starting structured parse (haiku, timeout=60s)")
-        parse_result = await parser_agent.run(raw_analysis)
-        step2_elapsed = _time.perf_counter() - step2_start
-        logger.info(
-            "Step 2 complete in %.1fs. Parsed %d enemies: %s",
-            step2_elapsed,
-            len(parse_result.output.enemies),
-            [(e.character_name, e.spec) for e in parse_result.output.enemies],
-        )
-
-        enemies = []
-        for e in parse_result.output.enemies:
-            spec = e.spec.lower().strip()
-            if spec not in SPEC_TO_PROFESSION:
-                logger.warning("Unknown spec '%s' for player '%s', skipping", spec, e.character_name)
-                continue
-            enemies.append(
-                {
-                    "character_name": e.character_name,
-                    "profession_id": SPEC_TO_PROFESSION[spec],
-                    "spec_id": spec,
-                }
-            )
-
-        total_elapsed = _time.perf_counter() - total_start
-        logger.info(
-            "=== SCOREBOARD PARSE DONE === %.1fs total (step1=%.1fs, step2=%.1fs), %d enemies: %s",
-            total_elapsed, step1_elapsed, step2_elapsed, len(enemies), enemies,
-        )
-        return {"enemies": enemies[:5]}
-
+        result = await parse_scoreboard_hybrid(request.image, request.media_type)
+        return result
     except Exception as e:
         logger.exception("Failed to parse scoreboard")
-        return {"enemies": [], "error": str(e)}
-    finally:
-        import os
-
-        try:
-            os.unlink(image_path)
-        except (OSError, NameError):
-            pass
+        return {"red_team": [], "blue_team": [], "user_team_color": "red", "error": str(e)}

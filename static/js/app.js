@@ -101,18 +101,30 @@ function setupPaste() {
                 return;
             }
 
-            if (!result.enemies || result.enemies.length === 0) {
-                showPasteStatus('No enemies detected in screenshot', 'error');
+            // New response format: { red_team, blue_team, user_team_color }
+            const redTeam = result.red_team || [];
+            const blueTeam = result.blue_team || [];
+            const userTeamColor = result.user_team_color || 'red';
+
+            if (redTeam.length === 0 && blueTeam.length === 0) {
+                showPasteStatus('No players detected in screenshot', 'error');
                 return;
             }
 
-            // Fill slots with parsed enemies
+            // Store team data for future use
+            state.userTeam = userTeamColor === 'red' ? redTeam : blueTeam;
+            state.userTeamColor = userTeamColor;
+
+            // Derive enemy team
+            const enemyTeam = userTeamColor === 'red' ? blueTeam : redTeam;
+
+            // Fill slots with enemy team players
             let specsDetected = 0;
             for (let i = 0; i < 5; i++) {
-                if (i < result.enemies.length) {
-                    const enemy = result.enemies[i];
+                if (i < enemyTeam.length) {
+                    const enemy = enemyTeam[i];
                     state.enemies[i] = {
-                        profession_id: enemy.profession_id,
+                        profession_id: enemy.profession_id || null,
                         spec_id: enemy.spec_id || null,
                         build_id: null,
                         player_name: enemy.character_name || null,
@@ -124,15 +136,16 @@ function setupPaste() {
             }
 
             renderSlots();
-            if (specsDetected === result.enemies.length) {
+            const totalEnemies = enemyTeam.filter(e => e.profession_id).length || enemyTeam.length;
+            if (specsDetected === totalEnemies && specsDetected > 0) {
                 showPasteStatus(
-                    `Detected ${result.enemies.length} enemies with elite specs. Click a slot to change or select build.`,
+                    `Detected ${totalEnemies} enemies with elite specs. Click a slot to change or select build.`,
                     'success'
                 );
                 debounceAnalyze();
             } else {
                 showPasteStatus(
-                    `Detected ${result.enemies.length} enemies. Click each slot to select elite spec.`,
+                    `Detected ${totalEnemies} enemies. Click each slot to select elite spec.`,
                     'success'
                 );
             }
