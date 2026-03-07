@@ -1,0 +1,18 @@
+{
+  "do_not_hit": [
+    {"skill_name": "Endure Pain", "profession_id": "warrior", "spec_id": null, "what_happens": "Invulnerable to direct damage for 4s", "what_to_do": "Wait it out, apply conditions instead, or disengage", "duration_seconds": 4},
+    {"skill_name": "Full Counter", "profession_id": "warrior", "spec_id": "spellbreaker", "what_happens": "Blocks all attacks, then hits back with daze + damage", "what_to_do": "Do NOT attack during stance. Wait 2s or bait with weak hit", "duration_seconds": 2},
+    {"skill_name": "Riposte", "profession_id": "warrior", "spec_id": null, "what_happens": "Block that counter-attacks on hit", "what_to_do": "Wait it out, don't attack into the block", "duration_seconds": 2},
+    {"skill_name": "Shield of Courage", "profession_id": "guardian", "spec_id": null, "what_happens": "Blocks all attacks in front for 3s (Virtue of Courage active)", "what_to_do": "Flank or wait, do not hit from the front", "duration_seconds": 3},
+    {"skill_name": "Shield of Absorption", "profession_id": "guardian", "spec_id": null, "what_happens": "Dome that absorbs projectiles", "what_to_do": "Use melee attacks only, walk inside the dome", "duration_seconds": 3},
+    {"skill_name": "Renewed Focus", "profession_id": "guardian", "spec_id": null, "what_happens": "3s invulnerability, recharges virtues", "what_to_do": "Disengage, reposition for re-engage after", "duration_seconds": 3},
+    {"skill_name": "Obsidian Flesh", "profession_id": "elementalist", "spec_id": null, "what_happens": "Invulnerable to conditions and strikes for 4s (channeled)", "what_to_do": "Wait it out or CC to interrupt the channel", "duration_seconds": 4},
+    {"skill_name": "Distortion", "profession_id": "mesmer", "spec_id": null, "what_happens": "Evade all attacks (F4 shatter)", "what_to_do": "Short duration — wait 1-2s then re-engage", "duration_seconds": 2},
+    {"skill_name": "Blurred Frenzy", "profession_id": "mesmer", "spec_id": null, "what_happens": "Evade all attacks while dealing damage (sword 2)", "what_to_do": "Dodge away from the damage, wait for it to end", "duration_seconds": 2},
+    {"skill_name": "Infuse Light", "profession_id": "revenant", "spec_id": "herald_rev", "what_happens": "Converts incoming damage to healing for 3s", "what_to_do": "STOP ALL DAMAGE. You are healing them. Disengage immediately", "duration_seconds": 3},
+    {"skill_name": "Rite of the Great Dwarf", "profession_id": "revenant", "spec_id": null, "what_happens": "50% damage reduction for party", "what_to_do": "Reduce pressure, focus someone not affected, or wait", "duration_seconds": 5},
+    {"skill_name": "Endure Pain (Reaper Shroud 3)", "profession_id": "necromancer", "spec_id": "reaper", "what_happens": "Reaper Shroud skill 3 grants temporary invuln on charge", "what_to_do": "Avoid hitting during the charge-up animation", "duration_seconds": 2},
+    {"skill_name": "Litany of Wrath", "profession_id": "guardian", "spec_id": null, "what_happens": "Heals for a % of all damage dealt for 6s", "what_to_do": "Disengage — your damage heals them. Wait 6s.", "duration_seconds": 6},
+    {"skill_name": "Dragon Trigger", "profession_id": "warrior", "spec_id": "bladesworn", "what_happens": "Charging massive hit. Gains stability + damage reduction while charging", "what_to_do": "CC to interrupt, or dodge the release. Don't face-tank", "duration_seconds": 3}
+  ]
+}

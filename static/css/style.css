@@ -1,0 +1,502 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0a0a0f;
+    --bg-card: #14141f;
+    --bg-hover: #1e1e2e;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --accent: #6e56cf;
+    --danger: #e5484d;
+    --success: #30a46c;
+    --warning: #f5a623;
+    --avoid: #e5484d;
+    --respect: #f5a623;
+    --hunt: #30a46c;
+    --border: #2a2a3a;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+}
+
+header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+nav {
+    display: flex;
+    gap: 4px;
+}
+
+.nav-btn {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid transparent;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.nav-btn:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+}
+
+.nav-btn.active {
+    color: var(--text);
+    background: var(--bg-hover);
+    border-color: var(--border);
+}
+
+main {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Buttons */
+.btn-primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: opacity 0.15s;
+}
+
+.btn-primary:hover {
+    opacity: 0.85;
+}
+
+.btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.btn-danger:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Match Controls */
+.match-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+/* Enemy Slots */
+.enemy-slots {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 900px) {
+    .enemy-slots {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .enemy-slots {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.enemy-slot {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.enemy-slot:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.enemy-slot.filled {
+    border-color: var(--accent);
+}
+
+.enemy-slot .slot-number {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.enemy-slot .profession-name {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.enemy-slot .spec-name {
+    font-size: 14px;
+    color: var(--accent);
+}
+
+.enemy-slot .slot-placeholder {
+    font-size: 32px;
+    color: var(--text-dim);
+}
+
+.enemy-slot .player-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: center;
+}
+
+.enemy-slot .build-select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.enemy-slot .slot-clear {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 6px;
+}
+
+/* Pickers */
+.picker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+}
+
+.picker h3 {
+    margin-bottom: 20px;
+    font-size: 20px;
+}
+
+.picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    max-width: 500px;
+    width: 100%;
+}
+
+.picker-btn {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    color: var(--text);
+    padding: 20px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    min-height: 64px;
+    transition: all 0.15s;
+}
+
+.picker-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+    transform: scale(1.03);
+}
+
+/* Strategy Cards */
+.strategy-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.strategy-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.strategy-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.strategy-card .card-spec {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.strategy-card .card-profession {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.strategy-card .card-build {
+    font-size: 12px;
+    color: var(--accent);
+}
+
+.strategy-card .card-player {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+.threat-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.threat-AVOID {
+    background: var(--avoid);
+    color: white;
+}
+
+.threat-RESPECT {
+    background: var(--respect);
+    color: black;
+}
+
+.threat-HUNT {
+    background: var(--hunt);
+    color: white;
+}
+
+.card-section {
+    font-size: 13px;
+}
+
+.card-section .label {
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.card-section .value {
+    color: var(--text);
+}
+
+.card-gameplan {
+    list-style: none;
+    padding: 0;
+}
+
+.card-gameplan li {
+    font-size: 13px;
+    padding: 3px 0;
+    padding-left: 12px;
+    position: relative;
+}
+
+.card-gameplan li::before {
+    content: ">";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: bold;
+}
+
+.focus-order {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+.stolen-skill {
+    font-size: 12px;
+    background: var(--bg);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+}
+
+.stolen-skill .skill-name {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* General Strategy */
+.general-strategy {
+    background: var(--bg-card);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 16px 20px;
+}
+
+.general-strategy .recommendation {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.general-strategy .role-summary {
+    font-size: 14px;
+    color: var(--text-dim);
+}
+
+/* Do Not Hit */
+.do-not-hit-section {
+    margin-top: 20px;
+}
+
+.do-not-hit-section h3 {
+    color: var(--danger);
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.dnh-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 8px;
+}
+
+.dnh-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--danger);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+}
+
+.dnh-item .dnh-skill {
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.dnh-item .dnh-effect {
+    color: var(--text-dim);
+    margin: 4px 0;
+}
+
+.dnh-item .dnh-action {
+    color: var(--success);
+}
+
+/* Players View */
+.player-search {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.player-search input {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.player-search input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.player-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 8px;
+}
+
+.player-card .player-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.player-card .player-info {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+}
+
+/* No results */
+.no-data {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 40px;
+    font-size: 14px;
+}
