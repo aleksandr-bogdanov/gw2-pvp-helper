@@ -371,9 +371,17 @@ async def parse_scoreboard(request: ScoreboardRequest):
             f.write(image_data)
             image_path = f.name
 
+        import time as _time
+
+        total_start = _time.perf_counter()
+        logger.info(
+            "=== SCOREBOARD PARSE START === image_size=%d bytes, media_type=%s, temp_file=%s",
+            len(image_data), request.media_type, image_path,
+        )
+
         # Step 1: Haiku describes the scoreboard in freeform text (vision task)
         vision_agent = Agent(
-            ClaudeCodeModel(model="haiku", timeout=120, cwd=Path("/tmp")),
+            ClaudeCodeModel(model="haiku", timeout=120, cwd=Path("/tmp"), verbose=True),
             output_type=str,
             system_prompt=(
                 "You are analyzing a Guild Wars 2 PvP scoreboard screenshot.\n\n"
@@ -413,16 +421,21 @@ async def parse_scoreboard(request: ScoreboardRequest):
                 "Write your analysis in plain text. Be detailed about what you see."
             ),
         )
-        logger.info("Step 1: Running vision analysis on scoreboard screenshot")
+        step1_start = _time.perf_counter()
+        logger.info("Step 1: Starting vision analysis (haiku, timeout=120s)")
         vision_result = await vision_agent.run(
             f"Read and analyze the scoreboard screenshot at {image_path}"
         )
         raw_analysis = vision_result.output
-        logger.info("Step 1 complete. Raw analysis:\n%s", raw_analysis)
+        step1_elapsed = _time.perf_counter() - step1_start
+        logger.info(
+            "Step 1 complete in %.1fs. Raw analysis (%d chars):\n%s",
+            step1_elapsed, len(raw_analysis), raw_analysis,
+        )
 
         # Step 2: Haiku parses the freeform analysis into structured output (text-only)
         parser_agent = Agent(
-            ClaudeCodeModel(model="haiku", timeout=60, cwd=Path("/tmp")),
+            ClaudeCodeModel(model="haiku", timeout=60, cwd=Path("/tmp"), verbose=True),
             output_type=ParsedScoreboard,
             retries=3,
             system_prompt=(
@@ -443,9 +456,16 @@ async def parse_scoreboard(request: ScoreboardRequest):
                 "The spec field must be one of the valid spec IDs above."
             ),
         )
-        logger.info("Step 2: Parsing analysis into structured format")
+        step2_start = _time.perf_counter()
+        logger.info("Step 2: Starting structured parse (haiku, timeout=60s)")
         parse_result = await parser_agent.run(raw_analysis)
-        logger.info("Step 2 complete. Parsed %d enemies", len(parse_result.output.enemies))
+        step2_elapsed = _time.perf_counter() - step2_start
+        logger.info(
+            "Step 2 complete in %.1fs. Parsed %d enemies: %s",
+            step2_elapsed,
+            len(parse_result.output.enemies),
+            [(e.character_name, e.spec) for e in parse_result.output.enemies],
+        )
 
         enemies = []
         for e in parse_result.output.enemies:
@@ -461,7 +481,11 @@ async def parse_scoreboard(request: ScoreboardRequest):
                 }
             )
 
-        logger.info("Returning %d enemies: %s", len(enemies), enemies)
+        total_elapsed = _time.perf_counter() - total_start
+        logger.info(
+            "=== SCOREBOARD PARSE DONE === %.1fs total (step1=%.1fs, step2=%.1fs), %d enemies: %s",
+            total_elapsed, step1_elapsed, step2_elapsed, len(enemies), enemies,
+        )
         return {"enemies": enemies[:5]}
 
     except Exception as e:
