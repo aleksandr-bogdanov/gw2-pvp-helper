@@ -3,58 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GW2 PvP Helper — S/D Daredevil</title>
+    <title>GW2 PvP — S/D Daredevil</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <!-- Header Bar -->
     <header>
-        <h1>GW2 PvP Helper</h1>
-        <nav>
-            <button class="nav-btn active" data-view="match">Match Setup</button>
-            <button class="nav-btn" data-view="analysis">Analysis</button>
-            <button class="nav-btn" data-view="players">Players</button>
-        </nav>
+        <h1>GW2 PvP — S/D Daredevil</h1>
+        <div class="header-actions">
+            <button id="btn-paste" class="btn-secondary" title="Paste scoreboard screenshot (Ctrl+V)">Paste Screenshot</button>
+            <button id="btn-reset" class="btn-danger">Reset</button>
+        </div>
     </header>
 
     <main>
-        <!-- VIEW 1: Match Setup -->
-        <section id="view-match" class="view active">
-            <div class="match-controls">
-                <button id="btn-reset" class="btn-danger">RESET</button>
-                <button id="btn-analyze" class="btn-primary">ANALYZE</button>
-            </div>
-            <div id="enemy-slots" class="enemy-slots">
-                <!-- 5 enemy slots rendered by JS -->
-            </div>
+        <!-- Paste status -->
+        <div id="paste-status" class="paste-status hidden"></div>
 
-            <!-- Profession picker modal -->
-            <div id="profession-picker" class="picker hidden">
-                <h3>Select Profession</h3>
-                <div id="profession-grid" class="picker-grid"></div>
-            </div>
-
-            <!-- Spec picker modal -->
-            <div id="spec-picker" class="picker hidden">
-                <h3>Select Elite Spec</h3>
-                <div id="spec-grid" class="picker-grid"></div>
+        <!-- Enemy Comp Strip -->
+        <section class="comp-strip">
+            <div id="enemy-slots" class="slot-row">
+                <!-- 5 slots rendered by JS -->
             </div>
         </section>
 
-        <!-- VIEW 2: Analysis -->
-        <section id="view-analysis" class="view hidden">
-            <div id="general-strategy" class="general-strategy"></div>
-            <div id="strategy-cards" class="strategy-cards"></div>
-            <div id="do-not-hit" class="do-not-hit-section"></div>
+        <!-- Inline Spec Picker (appears below slots when one is clicked) -->
+        <div id="inline-picker" class="inline-picker hidden">
+            <div class="picker-header">
+                <input type="text" id="picker-search" class="picker-search" placeholder="Search specs...">
+                <button id="picker-close" class="picker-close">&times;</button>
+            </div>
+            <div id="picker-options" class="picker-options"></div>
+        </div>
+
+        <!-- Strategy Banner -->
+        <section id="strategy-banner" class="strategy-banner hidden">
+            <div id="banner-recommendation" class="banner-recommendation"></div>
+            <div id="banner-roles" class="banner-roles"></div>
         </section>
 
-        <!-- VIEW 3: Players -->
-        <section id="view-players" class="view hidden">
-            <div class="player-search">
-                <input type="text" id="player-search-input" placeholder="Search by account name...">
-                <button id="btn-player-search" class="btn-primary">Search</button>
-            </div>
-            <div id="player-results"></div>
-        </section>
+        <!-- Strategy Cards -->
+        <section id="strategy-cards" class="strategy-cards"></section>
+
+        <!-- Do Not Hit Strip -->
+        <section id="do-not-hit" class="do-not-hit-strip hidden"></section>
     </main>
 
     <script src="/static/js/app.js"></script>

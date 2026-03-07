@@ -1,6 +1,6 @@
 // ── State ──
 const state = {
-    enemies: [null, null, null, null, null], // each: {profession_id, spec_id, build_id, player_name}
+    enemies: [null, null, null, null, null],
     professions: [],
     eliteSpecs: [],
     builds: [],
@@ -27,40 +27,120 @@ async function init() {
     state.eliteSpecs = specData.elite_specs;
 
     renderSlots();
-    setupNav();
     setupControls();
-    setupPlayerSearch();
-}
-
-// ── Navigation ──
-function setupNav() {
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.view').forEach(v => {
-                v.classList.remove('active');
-                v.classList.add('hidden');
-            });
-            btn.classList.add('active');
-            const view = document.getElementById(`view-${btn.dataset.view}`);
-            view.classList.remove('hidden');
-            view.classList.add('active');
-        });
-    });
+    setupPaste();
+    setupKeyboard();
 }
 
 // ── Controls ──
 function setupControls() {
-    document.getElementById('btn-reset').addEventListener('click', () => {
-        state.enemies = [null, null, null, null, null];
-        state.analysis = null;
-        renderSlots();
-        document.getElementById('general-strategy').innerHTML = '';
-        document.getElementById('strategy-cards').innerHTML = '';
-        document.getElementById('do-not-hit').innerHTML = '';
+    document.getElementById('btn-reset').addEventListener('click', resetAll);
+    document.getElementById('btn-paste').addEventListener('click', () => {
+        showPasteStatus('Press Ctrl+V / Cmd+V to paste a scoreboard screenshot', 'loading');
     });
+}
 
-    document.getElementById('btn-analyze').addEventListener('click', analyze);
+function resetAll() {
+    state.enemies = [null, null, null, null, null];
+    state.analysis = null;
+    state.activeSlot = null;
+    renderSlots();
+    closePicker();
+    document.getElementById('strategy-banner').classList.add('hidden');
+    document.getElementById('strategy-cards').innerHTML = '';
+    document.getElementById('do-not-hit').classList.add('hidden');
+    document.getElementById('paste-status').classList.add('hidden');
+}
+
+// ── Keyboard ──
+function setupKeyboard() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePicker();
+    });
+}
+
+// ── Paste Handler ──
+function setupPaste() {
+    document.addEventListener('paste', async (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        let imageFile = null;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                imageFile = item.getAsFile();
+                break;
+            }
+        }
+
+        if (!imageFile) return;
+        e.preventDefault();
+
+        showPasteStatus('Parsing scoreboard screenshot...', 'loading');
+
+        try {
+            const b64 = await fileToBase64(imageFile);
+            const result = await api('/api/analysis/parse-scoreboard', {
+                method: 'POST',
+                body: JSON.stringify({
+                    image: b64,
+                    media_type: imageFile.type,
+                }),
+            });
+
+            if (result.error) {
+                showPasteStatus(`Parse error: ${result.error}`, 'error');
+                return;
+            }
+
+            if (!result.enemies || result.enemies.length === 0) {
+                showPasteStatus('No enemies detected in screenshot', 'error');
+                return;
+            }
+
+            // Fill slots with parsed enemies
+            for (let i = 0; i < 5; i++) {
+                if (i < result.enemies.length) {
+                    const enemy = result.enemies[i];
+                    state.enemies[i] = {
+                        profession_id: enemy.profession_id,
+                        spec_id: null,
+                        build_id: null,
+                        player_name: enemy.character_name || null,
+                    };
+                } else {
+                    state.enemies[i] = null;
+                }
+            }
+
+            renderSlots();
+            showPasteStatus(
+                `Detected ${result.enemies.length} enemies. Click each slot to select elite spec.`,
+                'success'
+            );
+        } catch (err) {
+            showPasteStatus(`Failed to parse: ${err.message}`, 'error');
+        }
+    });
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            // Strip data URL prefix
+            const result = reader.result.split(',')[1];
+            resolve(result);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function showPasteStatus(message, type) {
+    const el = document.getElementById('paste-status');
+    el.textContent = message;
+    el.className = `paste-status ${type}`;
 }
 
 // ── Slots ──
@@ -70,151 +150,243 @@ function renderSlots() {
 
     state.enemies.forEach((enemy, i) => {
         const slot = document.createElement('div');
-        slot.className = `enemy-slot${enemy ? ' filled' : ''}`;
+        const threatClass = getSlotThreatClass(i);
+        slot.className = `comp-slot${enemy ? ' filled' : ''}${threatClass}${state.activeSlot === i ? ' active' : ''}`;
         slot.dataset.index = i;
 
         if (!enemy) {
             slot.innerHTML = `
                 <span class="slot-number">Enemy ${i + 1}</span>
                 <span class="slot-placeholder">+</span>
-                <span class="slot-number">Click to select</span>
             `;
-            slot.addEventListener('click', () => openProfessionPicker(i));
+            slot.addEventListener('click', () => openPicker(i));
         } else {
             const prof = state.professions.find(p => p.id === enemy.profession_id);
             const spec = enemy.spec_id ? state.eliteSpecs.find(s => s.id === enemy.spec_id) : null;
-            const specsForProf = state.eliteSpecs.filter(s => s.profession_id === enemy.profession_id);
-            const buildsForSpec = enemy.spec_id ? state.builds.filter(b => b.spec_id === enemy.spec_id) : [];
 
             slot.innerHTML = `
-                <span class="slot-number">Enemy ${i + 1}</span>
-                <span class="profession-name">${prof ? prof.name : enemy.profession_id}</span>
-                ${spec ? `<span class="spec-name">${spec.name}</span>` : '<span class="spec-name" style="color:var(--text-dim)">Click spec below</span>'}
-                ${buildsForSpec.length > 0 ? `
-                    <select class="build-select" data-slot="${i}">
-                        <option value="">-- Build --</option>
-                        ${buildsForSpec.map(b => `<option value="${b.id}" ${enemy.build_id === b.id ? 'selected' : ''}>${b.name}</option>`).join('')}
-                    </select>
-                ` : ''}
-                <input type="text" class="player-input" data-slot="${i}" placeholder="Player name" value="${enemy.player_name || ''}">
-                <button class="slot-clear" data-slot="${i}">clear</button>
+                <button class="slot-clear" title="Clear">&times;</button>
+                <span class="slot-spec">${spec ? spec.name : '(select spec)'}</span>
+                <span class="slot-profession">${prof ? prof.name : enemy.profession_id}</span>
+                ${enemy.player_name ? `<span class="slot-player" title="${enemy.player_name}">${enemy.player_name}</span>` : ''}
+                <div class="autocomplete-wrapper">
+                    <input type="text" class="slot-player-input" data-slot="${i}"
+                           placeholder="player name" value="${enemy.player_name || ''}"
+                           autocomplete="off">
+                </div>
             `;
 
-            // Click on profession name to change spec
-            if (!spec) {
-                slot.querySelector('.spec-name').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    openSpecPicker(i, enemy.profession_id);
-                });
-            }
-
+            // Click to open picker (but not on input/button)
             slot.addEventListener('click', (e) => {
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return;
-                openProfessionPicker(i);
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+                openPicker(i, enemy.profession_id);
             });
         }
 
         container.appendChild(slot);
     });
 
-    // Event delegation for inputs
-    container.querySelectorAll('.player-input').forEach(input => {
-        input.addEventListener('change', (e) => {
+    // Setup player inputs
+    container.querySelectorAll('.slot-player-input').forEach(input => {
+        input.addEventListener('click', e => e.stopPropagation());
+        input.addEventListener('input', (e) => {
             const idx = parseInt(e.target.dataset.slot);
             if (state.enemies[idx]) {
                 state.enemies[idx].player_name = e.target.value || null;
             }
+            handlePlayerAutocomplete(e.target, idx);
         });
-        input.addEventListener('click', e => e.stopPropagation());
+        input.addEventListener('blur', () => {
+            // Delay to allow click on autocomplete item
+            setTimeout(() => {
+                const list = input.parentElement.querySelector('.autocomplete-list');
+                if (list) list.remove();
+            }, 200);
+        });
     });
 
-    container.querySelectorAll('.build-select').forEach(select => {
-        select.addEventListener('change', (e) => {
-            const idx = parseInt(e.target.dataset.slot);
-            if (state.enemies[idx]) {
-                state.enemies[idx].build_id = e.target.value || null;
-            }
-        });
-        select.addEventListener('click', e => e.stopPropagation());
-    });
-
+    // Clear buttons
     container.querySelectorAll('.slot-clear').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const idx = parseInt(e.target.dataset.slot);
+            const slot = e.target.closest('.comp-slot');
+            const idx = parseInt(slot.dataset.index);
             state.enemies[idx] = null;
-            renderSlots();
-        });
-    });
-}
-
-// ── Profession Picker ──
-function openProfessionPicker(slotIndex) {
-    state.activeSlot = slotIndex;
-    const picker = document.getElementById('profession-picker');
-    const grid = document.getElementById('profession-grid');
-
-    grid.innerHTML = '';
-    state.professions.forEach(prof => {
-        const btn = document.createElement('button');
-        btn.className = 'picker-btn';
-        btn.textContent = prof.name;
-        btn.addEventListener('click', () => {
-            state.enemies[slotIndex] = {
-                profession_id: prof.id,
-                spec_id: null,
-                build_id: null,
-                player_name: state.enemies[slotIndex]?.player_name || null,
-            };
-            picker.classList.add('hidden');
-            openSpecPicker(slotIndex, prof.id);
-        });
-        grid.appendChild(btn);
-    });
-
-    picker.classList.remove('hidden');
-    picker.addEventListener('click', (e) => {
-        if (e.target === picker) picker.classList.add('hidden');
-    }, { once: true });
-}
-
-// ── Spec Picker ──
-function openSpecPicker(slotIndex, professionId) {
-    const picker = document.getElementById('spec-picker');
-    const grid = document.getElementById('spec-grid');
-    const specs = state.eliteSpecs.filter(s => s.profession_id === professionId);
-
-    grid.innerHTML = '';
-    specs.forEach(spec => {
-        const btn = document.createElement('button');
-        btn.className = 'picker-btn';
-        btn.textContent = spec.name;
-        btn.addEventListener('click', async () => {
-            state.enemies[slotIndex].spec_id = spec.id;
-            picker.classList.add('hidden');
-
-            // Load builds for this spec
-            const buildData = await api(`/api/data/builds?spec_id=${spec.id}`);
-            // Merge into state.builds (dedupe)
-            buildData.builds.forEach(b => {
-                if (!state.builds.find(existing => existing.id === b.id)) {
-                    state.builds.push(b);
-                }
-            });
-
+            if (state.activeSlot === idx) closePicker();
             renderSlots();
             debounceAnalyze();
         });
-        grid.appendChild(btn);
     });
+}
+
+function getSlotThreatClass(index) {
+    if (!state.analysis) return '';
+    const card = state.analysis.strategy_cards.find(c => {
+        const enemy = state.enemies[index];
+        if (!enemy) return false;
+        return c.spec_id === enemy.spec_id && c.profession_id === enemy.profession_id;
+    });
+    if (!card) return '';
+    return ` threat-${card.threat_level}`;
+}
+
+// ── Player Autocomplete ──
+async function handlePlayerAutocomplete(input, slotIndex) {
+    const query = input.value.trim();
+    const wrapper = input.parentElement;
+
+    // Remove existing list
+    const existing = wrapper.querySelector('.autocomplete-list');
+    if (existing) existing.remove();
+
+    if (query.length < 2) return;
+
+    try {
+        const result = await api(`/api/players/lookup/${encodeURIComponent(query)}`);
+        if (!result.players || result.players.length === 0) return;
+
+        const list = document.createElement('div');
+        list.className = 'autocomplete-list';
+
+        result.players.slice(0, 5).forEach(player => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.innerHTML = `
+                <span>${player.account_name}</span>
+                ${player.threat_level ? `<span class="autocomplete-threat">T${player.threat_level}</span>` : ''}
+            `;
+            item.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                input.value = player.account_name;
+                state.enemies[slotIndex].player_name = player.account_name;
+                list.remove();
+            });
+            list.appendChild(item);
+        });
+
+        wrapper.appendChild(list);
+    } catch {
+        // Silently fail autocomplete
+    }
+}
+
+// ── Inline Picker ──
+function openPicker(slotIndex, filterProfessionId) {
+    state.activeSlot = slotIndex;
+    const picker = document.getElementById('inline-picker');
+    const optionsContainer = document.getElementById('picker-options');
+    const searchInput = document.getElementById('picker-search');
 
     picker.classList.remove('hidden');
-    picker.addEventListener('click', (e) => {
-        if (e.target === picker) {
-            picker.classList.add('hidden');
-            renderSlots();
+    searchInput.value = '';
+    searchInput.focus();
+
+    renderPickerOptions(filterProfessionId, '');
+
+    // Search handler
+    searchInput.oninput = () => {
+        renderPickerOptions(filterProfessionId, searchInput.value.trim().toLowerCase());
+    };
+
+    // Close button
+    document.getElementById('picker-close').onclick = closePicker;
+
+    // Re-render slots to show active state
+    renderSlots();
+}
+
+function renderPickerOptions(filterProfessionId, searchQuery) {
+    const container = document.getElementById('picker-options');
+    container.innerHTML = '';
+
+    // Group specs by profession
+    const grouped = {};
+    state.professions.forEach(prof => {
+        grouped[prof.id] = { name: prof.name, specs: [] };
+    });
+
+    state.eliteSpecs.forEach(spec => {
+        if (grouped[spec.profession_id]) {
+            grouped[spec.profession_id].specs.push(spec);
         }
-    }, { once: true });
+    });
+
+    // If filtered to a profession, show that first
+    const profOrder = filterProfessionId
+        ? [filterProfessionId, ...Object.keys(grouped).filter(k => k !== filterProfessionId)]
+        : Object.keys(grouped);
+
+    profOrder.forEach(profId => {
+        const group = grouped[profId];
+        if (!group || group.specs.length === 0) return;
+
+        const matchingSpecs = group.specs.filter(spec => {
+            if (!searchQuery) return true;
+            return spec.name.toLowerCase().includes(searchQuery) ||
+                   group.name.toLowerCase().includes(searchQuery);
+        });
+
+        if (matchingSpecs.length === 0) return;
+
+        // Don't show non-filtered professions if a profession filter is set and no search
+        if (filterProfessionId && profId !== filterProfessionId && !searchQuery) return;
+
+        const label = document.createElement('div');
+        label.className = 'picker-group-label';
+        label.textContent = group.name;
+        container.appendChild(label);
+
+        matchingSpecs.forEach(spec => {
+            const btn = document.createElement('button');
+            btn.className = 'picker-option';
+
+            // Highlight if this matches a search perfectly
+            if (searchQuery && spec.name.toLowerCase().startsWith(searchQuery)) {
+                btn.classList.add('highlighted');
+            }
+
+            btn.textContent = spec.name;
+            btn.addEventListener('click', () => selectSpec(spec));
+            container.appendChild(btn);
+        });
+    });
+}
+
+async function selectSpec(spec) {
+    const idx = state.activeSlot;
+    if (idx === null) return;
+
+    if (!state.enemies[idx]) {
+        state.enemies[idx] = {
+            profession_id: spec.profession_id,
+            spec_id: spec.id,
+            build_id: null,
+            player_name: null,
+        };
+    } else {
+        state.enemies[idx].profession_id = spec.profession_id;
+        state.enemies[idx].spec_id = spec.id;
+    }
+
+    // Load builds
+    try {
+        const buildData = await api(`/api/data/builds?spec_id=${spec.id}`);
+        buildData.builds.forEach(b => {
+            if (!state.builds.find(existing => existing.id === b.id)) {
+                state.builds.push(b);
+            }
+        });
+    } catch { /* ignore */ }
+
+    closePicker();
+    renderSlots();
+    debounceAnalyze();
+}
+
+function closePicker() {
+    document.getElementById('inline-picker').classList.add('hidden');
+    state.activeSlot = null;
+    renderSlots();
 }
 
 // ── Analysis ──
@@ -225,73 +397,74 @@ function debounceAnalyze() {
 }
 
 async function analyze() {
-    const enemies = state.enemies.filter(e => e && e.profession_id);
-    if (enemies.length === 0) return;
+    const enemies = state.enemies.filter(e => e && e.spec_id);
+    if (enemies.length === 0) {
+        state.analysis = null;
+        document.getElementById('strategy-banner').classList.add('hidden');
+        document.getElementById('strategy-cards').innerHTML = '';
+        document.getElementById('do-not-hit').classList.add('hidden');
+        return;
+    }
 
-    const result = await api('/api/analysis/team-comp', {
-        method: 'POST',
-        body: JSON.stringify({ enemies }),
-    });
+    try {
+        const result = await api('/api/analysis/team-comp', {
+            method: 'POST',
+            body: JSON.stringify({ enemies }),
+        });
 
-    state.analysis = result;
-    renderAnalysis(result);
-
-    // Switch to analysis view
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(v => {
-        v.classList.remove('active');
-        v.classList.add('hidden');
-    });
-    document.querySelector('[data-view="analysis"]').classList.add('active');
-    document.getElementById('view-analysis').classList.remove('hidden');
-    document.getElementById('view-analysis').classList.add('active');
+        state.analysis = result;
+        renderAnalysis(result);
+        // Re-render slots to update threat colors
+        renderSlots();
+    } catch (err) {
+        console.error('Analysis failed:', err);
+    }
 }
 
 function renderAnalysis(data) {
-    // General strategy
-    const gs = document.getElementById('general-strategy');
-    gs.innerHTML = `
-        <div class="recommendation">${data.general_strategy.recommendation}</div>
-        <div class="role-summary">${data.general_strategy.role_summary}</div>
-    `;
+    // Strategy banner
+    const banner = document.getElementById('strategy-banner');
+    banner.classList.remove('hidden');
+    document.getElementById('banner-recommendation').textContent = data.general_strategy.recommendation;
+    document.getElementById('banner-roles').textContent = data.general_strategy.role_summary;
 
     // Strategy cards
     const container = document.getElementById('strategy-cards');
     container.innerHTML = '';
+
     data.strategy_cards.forEach(card => {
         const el = document.createElement('div');
-        el.className = 'strategy-card';
+        el.className = `strategy-card threat-${card.threat_level}`;
         el.innerHTML = `
-            <div class="card-header">
+            <div class="card-top">
                 <div>
                     <div class="card-spec">${card.spec_name}</div>
                     <div class="card-profession">${card.profession_name}</div>
-                    ${card.build_name ? `<div class="card-build">${card.build_name}</div>` : ''}
                     ${card.player_name ? `<div class="card-player">${card.player_name}</div>` : ''}
                 </div>
-                <div>
+                <div class="card-badges">
                     <span class="focus-order">#${card.focus_order}</span>
                     <span class="threat-badge threat-${card.threat_level}">${card.threat_level}</span>
                 </div>
             </div>
-            ${card.stolen_skill ? `
-                <div class="stolen-skill">
-                    <span class="skill-name">Steal: ${card.stolen_skill.skill_name}</span>
-                    <br>${card.stolen_skill.effect}
-                </div>
-            ` : ''}
             <div class="card-section">
                 <div class="label">Kills you with</div>
                 <div class="value">${card.kills_you_with}</div>
             </div>
             <div class="card-section">
-                <div class="label">Saves them with</div>
-                <div class="value">${card.saves_them_with}</div>
-            </div>
-            <div class="card-section">
                 <div class="label">Your window</div>
                 <div class="value">${card.your_window}</div>
             </div>
+            <div class="card-section secondary">
+                <div class="label">Saves them with</div>
+                <div class="value">${card.saves_them_with}</div>
+            </div>
+            ${card.stolen_skill ? `
+                <div class="stolen-skill">
+                    <span class="skill-name">Steal: ${card.stolen_skill.skill_name}</span>
+                    — ${card.stolen_skill.effect}
+                </div>
+            ` : ''}
             <ul class="card-gameplan">
                 ${card.gameplan.map(g => `<li>${g}</li>`).join('')}
             </ul>
@@ -302,59 +475,24 @@ function renderAnalysis(data) {
     // Do not hit
     const dnh = document.getElementById('do-not-hit');
     if (data.do_not_hit.length > 0) {
+        dnh.classList.remove('hidden');
         dnh.innerHTML = `
-            <h3>DO NOT HIT</h3>
-            <div class="dnh-list">
+            <div class="dnh-header">Do Not Hit</div>
+            <div class="dnh-pills">
                 ${data.do_not_hit.map(d => `
-                    <div class="dnh-item">
-                        <div class="dnh-skill">${d.skill_name}</div>
-                        <div class="dnh-effect">${d.what_happens} (${d.duration_seconds}s)</div>
-                        <div class="dnh-action">${d.what_to_do}</div>
-                    </div>
+                    <span class="dnh-pill">
+                        ${d.skill_name}<span class="dnh-duration">(${d.duration_seconds}s)</span>
+                        <span class="dnh-tooltip">
+                            <div class="dnh-tooltip-effect">${d.what_happens}</div>
+                            <div class="dnh-tooltip-action">${d.what_to_do}</div>
+                        </span>
+                    </span>
                 `).join('')}
             </div>
         `;
     } else {
-        dnh.innerHTML = '';
+        dnh.classList.add('hidden');
     }
-}
-
-// ── Player Search ──
-function setupPlayerSearch() {
-    const btn = document.getElementById('btn-player-search');
-    const input = document.getElementById('player-search-input');
-
-    const doSearch = async () => {
-        const name = input.value.trim();
-        if (!name) return;
-        const result = await api(`/api/players/lookup/${encodeURIComponent(name)}`);
-        renderPlayerResults(result.players);
-    };
-
-    btn.addEventListener('click', doSearch);
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') doSearch();
-    });
-}
-
-function renderPlayerResults(players) {
-    const container = document.getElementById('player-results');
-    if (!players || players.length === 0) {
-        container.innerHTML = '<div class="no-data">No players found</div>';
-        return;
-    }
-
-    container.innerHTML = players.map(p => `
-        <div class="player-card">
-            <div class="player-name">${p.account_name}${p.nickname ? ` (${p.nickname})` : ''}</div>
-            <div class="player-info">
-                Threat: ${p.threat_level || 0} |
-                Last seen: ${p.last_seen || 'never'} |
-                Last played: ${p.last_profession || '?'} / ${p.last_spec || '?'}
-                ${p.notes ? `<br>Notes: ${p.notes}` : ''}
-            </div>
-        </div>
-    `).join('');
 }
 
 // ── Boot ──

@@ -1,4 +1,6 @@
+import base64
 import json
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -7,6 +9,7 @@ from pydantic import BaseModel
 router = APIRouter()
 
 DATA_DIR = Path(__file__).parent.parent / "data"
+logger = logging.getLogger(__name__)
 
 
 def _load_json(path: Path) -> dict:
@@ -276,3 +279,74 @@ async def analyze_team_comp(request: TeamCompRequest):
         "general_strategy": general,
         "do_not_hit": do_not_hit,
     }
+
+
+# ── Screenshot Parsing ──
+
+VALID_PROFESSIONS = {
+    "guardian", "warrior", "revenant", "ranger", "thief",
+    "engineer", "necromancer", "elementalist", "mesmer",
+}
+
+
+class ParsedEnemy(BaseModel):
+    character_name: str
+    profession: str
+
+
+class ParsedScoreboard(BaseModel):
+    enemies: list[ParsedEnemy]
+
+
+class ScoreboardRequest(BaseModel):
+    image: str  # base64 encoded
+    media_type: str = "image/png"
+
+
+@router.post("/parse-scoreboard")
+async def parse_scoreboard(request: ScoreboardRequest):
+    try:
+        from claude_code_model import ClaudeCodeModel
+        from pydantic_ai import Agent
+        from pydantic_ai.messages import BinaryContent
+    except ImportError:
+        logger.warning("claude-code-model or pydantic-ai not installed, using fallback")
+        return {"enemies": [], "error": "Screenshot parsing dependencies not available"}
+
+    try:
+        image_data = base64.b64decode(request.image)
+    except Exception:
+        return {"enemies": [], "error": "Invalid base64 image data"}
+
+    scoreboard_agent = Agent(
+        ClaudeCodeModel(model="haiku"),
+        output_type=ParsedScoreboard,
+        system_prompt=(
+            "Extract the ENEMY team from this GW2 PvP scoreboard screenshot. "
+            "The scoreboard shows two teams (red/blue backgrounds). Extract the team that is NOT "
+            "the user's team — typically the right side or bottom section. "
+            "Return each player's character name and base profession "
+            "(guardian/warrior/revenant/ranger/thief/engineer/necromancer/elementalist/mesmer). "
+            "If you cannot determine the profession, make your best guess based on the class icon."
+        ),
+    )
+
+    try:
+        image = BinaryContent(data=image_data, media_type=request.media_type)
+        result = await scoreboard_agent.run(["Parse this scoreboard", image])
+
+        enemies = []
+        for e in result.output.enemies:
+            prof = e.profession.lower().strip()
+            if prof not in VALID_PROFESSIONS:
+                continue
+            enemies.append({
+                "character_name": e.character_name,
+                "profession_id": prof,
+            })
+
+        return {"enemies": enemies[:5]}
+
+    except Exception as e:
+        logger.exception("Failed to parse scoreboard")
+        return {"enemies": [], "error": str(e)}
