@@ -432,15 +432,15 @@ wheels = [
 
 [[package]]
 name = "claude-code-model"
-version = "0.4.2"
+version = "0.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pydantic-ai" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/59/89/c4a17941c9d9f977a48d97760c8865a1b29d91597633deac9f1b99193041/claude_code_model-0.4.2.tar.gz", hash = "sha256:8e1931d5cf73de97651df5ff290e7a9126edb6a385c81d8d069ab496694e8303", size = 229389, upload-time = "2026-03-07T06:10:02.45Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/05/80/a37d808a38a5eb493bc8bf36b9ae3f3efd9890f956f03bda5798a4415d61/claude_code_model-0.4.3.tar.gz", hash = "sha256:049cf752d2b55fe35ada9eff8862ed3ccc7f4db182fe3d62737772f59b3423d3", size = 229032, upload-time = "2026-03-07T06:26:13.048Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/df/cb6af56a0a2e882c7c6ba4bcb4b3cb5d0cd8d66632378612119782311bd4/claude_code_model-0.4.2-py3-none-any.whl", hash = "sha256:48504c9da39f93b7dacba65f7343d95ede04ae336ef54b67b8a5860b5f87e1e1", size = 14794, upload-time = "2026-03-07T06:10:01.016Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/ad/8a35aa2ababcfbcf35300f8b69b84da09625c0c55680fe23b69e895a4417/claude_code_model-0.4.3-py3-none-any.whl", hash = "sha256:d384a7264a7ce17525da8e5cf1fd6e1891b4e794efd87895765362345cfe2d18", size = 14649, upload-time = "2026-03-07T06:26:11.838Z" },
 ]
 
 [[package]]
@@ -981,7 +981,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20" },
     { name = "anyio", extras = ["trio"], marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "beautifulsoup4", specifier = ">=4.12" },
-    { name = "claude-code-model", specifier = ">=0.4.2" },
+    { name = "claude-code-model", specifier = ">=0.4.3" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "httpx", marker = "extra == 'dev'" },
