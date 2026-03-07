@@ -371,10 +371,10 @@ async def parse_scoreboard(request: ScoreboardRequest):
             f.write(image_data)
             image_path = f.name
 
-        scoreboard_agent = Agent(
-            ClaudeCodeModel(model="sonnet", timeout=120, cwd=Path("/tmp")),
-            output_type=ParsedScoreboard,
-            retries=3,
+        # Step 1: Haiku describes the scoreboard in freeform text (vision task)
+        vision_agent = Agent(
+            ClaudeCodeModel(model="haiku", timeout=120, cwd=Path("/tmp")),
+            output_type=str,
             system_prompt=(
                 "You are analyzing a Guild Wars 2 PvP scoreboard screenshot.\n\n"
                 "SCOREBOARD LAYOUT:\n"
@@ -386,70 +386,72 @@ async def parse_scoreboard(request: ScoreboardRequest):
                 "- Blue team: spec icons appear to the RIGHT of the player name\n\n"
                 "The scoreboard shows ELITE SPECIALIZATION icons, not base profession icons. "
                 "Icons are color-coded by profession. Identify the specific elite spec.\n\n"
-                "GUARDIAN (blue icons):\n"
-                "- core_guardian: blue flame/shield\n"
-                "- dragonhunter: bow/crossbow with wings\n"
-                "- firebrand: open tome/book with flames\n"
-                "- willbender: angular sword with flowing motion lines\n"
-                "- herald: spear with golden light\n\n"
-                "WARRIOR (gold/yellow icons):\n"
-                "- core_warrior: gold sword\n"
-                "- berserker: flaming horned helmet/skull\n"
-                "- spellbreaker: crossed daggers with broken circle\n"
-                "- bladesworn: angular gunsaber/katana\n"
-                "- vindicator: greatsword with alliance symbol\n\n"
-                "REVENANT (red/crimson icons):\n"
-                "- core_revenant: red misty/ethereal\n"
-                "- herald_rev: dragon face with radiating lines\n"
-                "- renegade: shattered charr warband emblem\n"
-                "- vindicator_rev: upward-pointing wings\n\n"
-                "RANGER (green icons):\n"
-                "- core_ranger: green leaf/nature\n"
-                "- druid: celestial/star with nature elements\n"
-                "- soulbeast: merged beast face (human/animal hybrid)\n"
-                "- untamed: wild feral claw marks\n\n"
-                "THIEF (gray/dark icons):\n"
-                "- core_thief: gray dagger\n"
-                "- daredevil: three-pointed staff/bo\n"
-                "- deadeye: crosshair/scope/target reticle\n"
-                "- specter: shadow/ghostly lantern\n\n"
-                "ENGINEER (orange/brown icons):\n"
-                "- core_engineer: wrench/gear\n"
-                "- scrapper: wrench/hammer with lightning bolt\n"
-                "- holosmith: holographic sun burst\n"
-                "- mechanist: jade mech/robot face\n\n"
-                "NECROMANCER (dark green icons):\n"
-                "- core_necromancer: green skull\n"
-                "- reaper: hooded skull with scythe blade\n"
-                "- scourge: sand shade/torch with swirling particles\n"
-                "- harbinger: pistol/flask with blight vial\n\n"
-                "ELEMENTALIST (red-orange icons):\n"
-                "- core_elementalist: red/orange flame\n"
-                "- tempest: swirling storm/overload circle\n"
-                "- weaver: dual-element intertwined strands\n"
-                "- catalyst: jade sphere/hammer with elemental orb\n\n"
-                "MESMER (purple/magenta icons):\n"
-                "- core_mesmer: purple butterfly/swirl\n"
-                "- chronomancer: clock face/hourglass\n"
-                "- mirage: mirrored/illusory axe with haze\n"
-                "- virtuoso: floating psychic blade/dagger\n\n"
+                "GUARDIAN (blue icons): core_guardian (flame/shield), dragonhunter (bow/wings), "
+                "firebrand (tome/book), willbender (angular sword), herald (spear/golden light)\n"
+                "WARRIOR (gold icons): core_warrior (sword), berserker (flaming helmet), "
+                "spellbreaker (crossed daggers), bladesworn (gunsaber/katana), vindicator (greatsword)\n"
+                "REVENANT (red icons): core_revenant (misty), herald_rev (dragon face), "
+                "renegade (shattered emblem), vindicator_rev (upward wings)\n"
+                "RANGER (green icons): core_ranger (leaf), druid (celestial/star), "
+                "soulbeast (merged beast face), untamed (feral claw marks)\n"
+                "THIEF (gray icons): core_thief (dagger), daredevil (staff/bo), "
+                "deadeye (crosshair/scope), specter (ghostly lantern)\n"
+                "ENGINEER (orange icons): core_engineer (wrench/gear), scrapper (hammer/lightning), "
+                "holosmith (holographic sun), mechanist (jade mech face)\n"
+                "NECROMANCER (dark green icons): core_necromancer (skull), reaper (hooded skull/scythe), "
+                "scourge (sand shade/torch), harbinger (pistol/flask)\n"
+                "ELEMENTALIST (red-orange icons): core_elementalist (flame), tempest (storm circle), "
+                "weaver (intertwined strands), catalyst (jade sphere)\n"
+                "MESMER (purple icons): core_mesmer (butterfly/swirl), chronomancer (clock/hourglass), "
+                "mirage (illusory axe/haze), virtuoso (floating blade)\n\n"
                 "YOUR TASK:\n"
                 "1. Find the highlighted/bolded player name to identify the user's team\n"
-                "2. Extract the 5 players from the OTHER (enemy) team\n"
-                "3. For each enemy player, return their character name and spec ID "
-                "(the lowercase identifier shown above, e.g. 'firebrand', 'reaper', 'daredevil')\n\n"
-                "If you cannot distinguish the exact elite spec, return the core spec "
-                "(e.g. 'core_guardian'). Use the spec field for the spec ID."
+                "2. List ALL 10 players you see — for each, state their team (red/blue), "
+                "character name, icon color, icon shape description, and your best guess "
+                "at the elite spec\n"
+                "3. Clearly state which team is the user's team and which is the enemy team\n\n"
+                "Write your analysis in plain text. Be detailed about what you see."
             ),
         )
-        result = await scoreboard_agent.run(
-            f"Read and parse the scoreboard screenshot at {image_path}"
+        logger.info("Step 1: Running vision analysis on scoreboard screenshot")
+        vision_result = await vision_agent.run(
+            f"Read and analyze the scoreboard screenshot at {image_path}"
         )
+        raw_analysis = vision_result.output
+        logger.info("Step 1 complete. Raw analysis:\n%s", raw_analysis)
+
+        # Step 2: Haiku parses the freeform analysis into structured output (text-only)
+        parser_agent = Agent(
+            ClaudeCodeModel(model="haiku", timeout=60, cwd=Path("/tmp")),
+            output_type=ParsedScoreboard,
+            retries=3,
+            system_prompt=(
+                "You parse Guild Wars 2 scoreboard analysis into structured data.\n\n"
+                "You will receive a freeform text description of a GW2 PvP scoreboard. "
+                "Extract the ENEMY team players (the team that is NOT the user's team).\n\n"
+                "Valid spec IDs (use these exactly):\n"
+                "Guardian: core_guardian, dragonhunter, firebrand, willbender, herald\n"
+                "Warrior: core_warrior, berserker, spellbreaker, bladesworn, vindicator\n"
+                "Revenant: core_revenant, herald_rev, renegade, vindicator_rev\n"
+                "Ranger: core_ranger, druid, soulbeast, untamed\n"
+                "Thief: core_thief, daredevil, deadeye, specter\n"
+                "Engineer: core_engineer, scrapper, holosmith, mechanist\n"
+                "Necromancer: core_necromancer, reaper, scourge, harbinger\n"
+                "Elementalist: core_elementalist, tempest, weaver, catalyst\n"
+                "Mesmer: core_mesmer, chronomancer, mirage, virtuoso\n\n"
+                "Return exactly 5 enemies with character_name and spec fields. "
+                "The spec field must be one of the valid spec IDs above."
+            ),
+        )
+        logger.info("Step 2: Parsing analysis into structured format")
+        parse_result = await parser_agent.run(raw_analysis)
+        logger.info("Step 2 complete. Parsed %d enemies", len(parse_result.output.enemies))
 
         enemies = []
-        for e in result.output.enemies:
+        for e in parse_result.output.enemies:
             spec = e.spec.lower().strip()
             if spec not in SPEC_TO_PROFESSION:
+                logger.warning("Unknown spec '%s' for player '%s', skipping", spec, e.character_name)
                 continue
             enemies.append(
                 {
@@ -459,6 +461,7 @@ async def parse_scoreboard(request: ScoreboardRequest):
                 }
             )
 
+        logger.info("Returning %d enemies: %s", len(enemies), enemies)
         return {"enemies": enemies[:5]}
 
     except Exception as e:
