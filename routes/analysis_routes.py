@@ -312,12 +312,13 @@ class ScoreboardRequest(BaseModel):
 
 @router.post("/parse-scoreboard")
 async def parse_scoreboard(request: ScoreboardRequest):
+    import tempfile
+
     try:
         from claude_code_model import ClaudeCodeModel
         from pydantic_ai import Agent
-        from pydantic_ai.messages import BinaryContent
     except ImportError:
-        logger.warning("claude-code-model or pydantic-ai not installed, using fallback")
+        logger.warning("claude-code-model or pydantic-ai not installed")
         return {"enemies": [], "error": "Screenshot parsing dependencies not available"}
 
     try:
@@ -325,9 +326,15 @@ async def parse_scoreboard(request: ScoreboardRequest):
     except Exception:
         return {"enemies": [], "error": "Invalid base64 image data"}
 
+    # Save image to temp file so the CLI can read it (avoids broken stream-json)
+    ext = request.media_type.split("/")[-1] if "/" in request.media_type else "png"
     try:
+        with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False, dir="/tmp") as f:
+            f.write(image_data)
+            image_path = f.name
+
         scoreboard_agent = Agent(
-            ClaudeCodeModel(model="haiku", timeout=120, verbose=True),
+            ClaudeCodeModel(model="haiku", timeout=120, cwd=Path("/tmp")),
             output_type=ParsedScoreboard,
             retries=3,
             system_prompt=(
@@ -339,8 +346,9 @@ async def parse_scoreboard(request: ScoreboardRequest):
                 "If you cannot determine the profession, make your best guess based on the class icon."
             ),
         )
-        image = BinaryContent(data=image_data, media_type=request.media_type)
-        result = await scoreboard_agent.run(["Parse this scoreboard", image])
+        result = await scoreboard_agent.run(
+            f"Read and parse the scoreboard screenshot at {image_path}"
+        )
 
         enemies = []
         for e in result.output.enemies:
@@ -359,3 +367,10 @@ async def parse_scoreboard(request: ScoreboardRequest):
     except Exception as e:
         logger.exception("Failed to parse scoreboard")
         return {"enemies": [], "error": str(e)}
+    finally:
+        import os
+
+        try:
+            os.unlink(image_path)
+        except (OSError, NameError):
+            pass
