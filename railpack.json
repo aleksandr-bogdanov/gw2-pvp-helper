@@ -7,7 +7,10 @@
     "install-claude-cli": {
       "commands": [
         "npm install -g @anthropic-ai/claude-code",
-        "ln -sf $(which claude) /usr/local/bin/claude"
+        "npm root -g",
+        "ls -la $(npm root -g)/../bin/",
+        "ln -sf $(npm root -g)/../bin/claude /usr/local/bin/claude",
+        "ls -la /usr/local/bin/claude"
       ]
     }
   }
