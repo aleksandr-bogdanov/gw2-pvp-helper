@@ -334,16 +334,35 @@ async def parse_scoreboard(request: ScoreboardRequest):
             image_path = f.name
 
         scoreboard_agent = Agent(
-            ClaudeCodeModel(model="haiku", timeout=120, cwd=Path("/tmp")),
+            ClaudeCodeModel(model="opus", timeout=120, cwd=Path("/tmp")),
             output_type=ParsedScoreboard,
             retries=3,
             system_prompt=(
-                "Extract the ENEMY team from this GW2 PvP scoreboard screenshot. "
-                "The scoreboard shows two teams (red/blue backgrounds). Extract the team that is NOT "
-                "the user's team — typically the right side or bottom section. "
-                "Return each player's character name and base profession "
-                "(guardian/warrior/revenant/ranger/thief/engineer/necromancer/elementalist/mesmer). "
-                "If you cannot determine the profession, make your best guess based on the class icon."
+                "You are analyzing a Guild Wars 2 PvP scoreboard screenshot.\n\n"
+                "SCOREBOARD LAYOUT:\n"
+                "- Two colored sections: RED team (top/left) and BLUE team (bottom/right)\n"
+                "- Each section has exactly 5 player rows\n"
+                "- One player name is highlighted/bolded — that is the user's character\n\n"
+                "PROFESSION ICON POSITIONS:\n"
+                "- Red team: profession icons appear to the LEFT of the player name\n"
+                "- Blue team: profession icons appear to the RIGHT of the player name\n\n"
+                "GW2 PROFESSION ICONS (9 base professions):\n"
+                "- Guardian: blue flame/shield icon\n"
+                "- Warrior: yellow/gold sword icon\n"
+                "- Revenant: red misty/ethereal icon\n"
+                "- Ranger: green leaf/nature icon\n"
+                "- Thief: gray/dark dagger icon\n"
+                "- Engineer: brown/orange wrench/gear icon\n"
+                "- Necromancer: green skull/dark icon\n"
+                "- Elementalist: red/orange flame icon\n"
+                "- Mesmer: purple butterfly/swirl icon\n\n"
+                "YOUR TASK:\n"
+                "1. Find the highlighted/bolded player name to identify the user's team\n"
+                "2. Extract the 5 players from the OTHER (enemy) team\n"
+                "3. For each enemy player, return their character name and base profession "
+                "based on the class icon\n\n"
+                "Return professions as lowercase: guardian, warrior, revenant, ranger, thief, "
+                "engineer, necromancer, elementalist, mesmer."
             ),
         )
         result = await scoreboard_agent.run(
