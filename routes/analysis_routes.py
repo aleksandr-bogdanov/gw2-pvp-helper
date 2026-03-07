@@ -284,8 +284,15 @@ async def analyze_team_comp(request: TeamCompRequest):
 # ── Screenshot Parsing ──
 
 VALID_PROFESSIONS = {
-    "guardian", "warrior", "revenant", "ranger", "thief",
-    "engineer", "necromancer", "elementalist", "mesmer",
+    "guardian",
+    "warrior",
+    "revenant",
+    "ranger",
+    "thief",
+    "engineer",
+    "necromancer",
+    "elementalist",
+    "mesmer",
 }
 
 
@@ -340,10 +347,12 @@ async def parse_scoreboard(request: ScoreboardRequest):
             prof = e.profession.lower().strip()
             if prof not in VALID_PROFESSIONS:
                 continue
-            enemies.append({
-                "character_name": e.character_name,
-                "profession_id": prof,
-            })
+            enemies.append(
+                {
+                    "character_name": e.character_name,
+                    "profession_id": prof,
+                }
+            )
 
         return {"enemies": enemies[:5]}
 
