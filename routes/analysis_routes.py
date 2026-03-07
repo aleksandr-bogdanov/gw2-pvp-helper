@@ -327,7 +327,7 @@ async def parse_scoreboard(request: ScoreboardRequest):
 
     try:
         scoreboard_agent = Agent(
-            ClaudeCodeModel(model="haiku", timeout=120),
+            ClaudeCodeModel(model="haiku", timeout=120, verbose=True),
             output_type=ParsedScoreboard,
             retries=3,
             system_prompt=(
