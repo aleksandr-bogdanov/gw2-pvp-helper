@@ -283,22 +283,60 @@ async def analyze_team_comp(request: TeamCompRequest):
 
 # ── Screenshot Parsing ──
 
-VALID_PROFESSIONS = {
-    "guardian",
-    "warrior",
-    "revenant",
-    "ranger",
-    "thief",
-    "engineer",
-    "necromancer",
-    "elementalist",
-    "mesmer",
+SPEC_TO_PROFESSION = {
+    # Guardian (blue icons)
+    "core_guardian": "guardian",
+    "dragonhunter": "guardian",
+    "firebrand": "guardian",
+    "willbender": "guardian",
+    "herald": "guardian",
+    # Warrior (gold icons)
+    "core_warrior": "warrior",
+    "berserker": "warrior",
+    "spellbreaker": "warrior",
+    "bladesworn": "warrior",
+    "vindicator": "warrior",
+    # Revenant (red icons)
+    "core_revenant": "revenant",
+    "herald_rev": "revenant",
+    "renegade": "revenant",
+    "vindicator_rev": "revenant",
+    # Ranger (green icons)
+    "core_ranger": "ranger",
+    "druid": "ranger",
+    "soulbeast": "ranger",
+    "untamed": "ranger",
+    # Thief (gray icons)
+    "core_thief": "thief",
+    "daredevil": "thief",
+    "deadeye": "thief",
+    "specter": "thief",
+    # Engineer (orange icons)
+    "core_engineer": "engineer",
+    "scrapper": "engineer",
+    "holosmith": "engineer",
+    "mechanist": "engineer",
+    # Necromancer (dark green icons)
+    "core_necromancer": "necromancer",
+    "reaper": "necromancer",
+    "scourge": "necromancer",
+    "harbinger": "necromancer",
+    # Elementalist (red-orange icons)
+    "core_elementalist": "elementalist",
+    "tempest": "elementalist",
+    "weaver": "elementalist",
+    "catalyst": "elementalist",
+    # Mesmer (purple icons)
+    "core_mesmer": "mesmer",
+    "chronomancer": "mesmer",
+    "mirage": "mesmer",
+    "virtuoso": "mesmer",
 }
 
 
 class ParsedEnemy(BaseModel):
     character_name: str
-    profession: str
+    spec: str
 
 
 class ParsedScoreboard(BaseModel):
@@ -343,26 +381,65 @@ async def parse_scoreboard(request: ScoreboardRequest):
                 "- Two colored sections: RED team (top/left) and BLUE team (bottom/right)\n"
                 "- Each section has exactly 5 player rows\n"
                 "- One player name is highlighted/bolded — that is the user's character\n\n"
-                "PROFESSION ICON POSITIONS:\n"
-                "- Red team: profession icons appear to the LEFT of the player name\n"
-                "- Blue team: profession icons appear to the RIGHT of the player name\n\n"
-                "GW2 PROFESSION ICONS (9 base professions):\n"
-                "- Guardian: blue flame/shield icon\n"
-                "- Warrior: yellow/gold sword icon\n"
-                "- Revenant: red misty/ethereal icon\n"
-                "- Ranger: green leaf/nature icon\n"
-                "- Thief: gray/dark dagger icon\n"
-                "- Engineer: brown/orange wrench/gear icon\n"
-                "- Necromancer: green skull/dark icon\n"
-                "- Elementalist: red/orange flame icon\n"
-                "- Mesmer: purple butterfly/swirl icon\n\n"
+                "ICON POSITIONS:\n"
+                "- Red team: spec icons appear to the LEFT of the player name\n"
+                "- Blue team: spec icons appear to the RIGHT of the player name\n\n"
+                "The scoreboard shows ELITE SPECIALIZATION icons, not base profession icons. "
+                "Icons are color-coded by profession. Identify the specific elite spec.\n\n"
+                "GUARDIAN (blue icons):\n"
+                "- core_guardian: blue flame/shield\n"
+                "- dragonhunter: bow/crossbow with wings\n"
+                "- firebrand: open tome/book with flames\n"
+                "- willbender: angular sword with flowing motion lines\n"
+                "- herald: spear with golden light\n\n"
+                "WARRIOR (gold/yellow icons):\n"
+                "- core_warrior: gold sword\n"
+                "- berserker: flaming horned helmet/skull\n"
+                "- spellbreaker: crossed daggers with broken circle\n"
+                "- bladesworn: angular gunsaber/katana\n"
+                "- vindicator: greatsword with alliance symbol\n\n"
+                "REVENANT (red/crimson icons):\n"
+                "- core_revenant: red misty/ethereal\n"
+                "- herald_rev: dragon face with radiating lines\n"
+                "- renegade: shattered charr warband emblem\n"
+                "- vindicator_rev: upward-pointing wings\n\n"
+                "RANGER (green icons):\n"
+                "- core_ranger: green leaf/nature\n"
+                "- druid: celestial/star with nature elements\n"
+                "- soulbeast: merged beast face (human/animal hybrid)\n"
+                "- untamed: wild feral claw marks\n\n"
+                "THIEF (gray/dark icons):\n"
+                "- core_thief: gray dagger\n"
+                "- daredevil: three-pointed staff/bo\n"
+                "- deadeye: crosshair/scope/target reticle\n"
+                "- specter: shadow/ghostly lantern\n\n"
+                "ENGINEER (orange/brown icons):\n"
+                "- core_engineer: wrench/gear\n"
+                "- scrapper: wrench/hammer with lightning bolt\n"
+                "- holosmith: holographic sun burst\n"
+                "- mechanist: jade mech/robot face\n\n"
+                "NECROMANCER (dark green icons):\n"
+                "- core_necromancer: green skull\n"
+                "- reaper: hooded skull with scythe blade\n"
+                "- scourge: sand shade/torch with swirling particles\n"
+                "- harbinger: pistol/flask with blight vial\n\n"
+                "ELEMENTALIST (red-orange icons):\n"
+                "- core_elementalist: red/orange flame\n"
+                "- tempest: swirling storm/overload circle\n"
+                "- weaver: dual-element intertwined strands\n"
+                "- catalyst: jade sphere/hammer with elemental orb\n\n"
+                "MESMER (purple/magenta icons):\n"
+                "- core_mesmer: purple butterfly/swirl\n"
+                "- chronomancer: clock face/hourglass\n"
+                "- mirage: mirrored/illusory axe with haze\n"
+                "- virtuoso: floating psychic blade/dagger\n\n"
                 "YOUR TASK:\n"
                 "1. Find the highlighted/bolded player name to identify the user's team\n"
                 "2. Extract the 5 players from the OTHER (enemy) team\n"
-                "3. For each enemy player, return their character name and base profession "
-                "based on the class icon\n\n"
-                "Return professions as lowercase: guardian, warrior, revenant, ranger, thief, "
-                "engineer, necromancer, elementalist, mesmer."
+                "3. For each enemy player, return their character name and spec ID "
+                "(the lowercase identifier shown above, e.g. 'firebrand', 'reaper', 'daredevil')\n\n"
+                "If you cannot distinguish the exact elite spec, return the core spec "
+                "(e.g. 'core_guardian'). Use the spec field for the spec ID."
             ),
         )
         result = await scoreboard_agent.run(
@@ -371,13 +448,14 @@ async def parse_scoreboard(request: ScoreboardRequest):
 
         enemies = []
         for e in result.output.enemies:
-            prof = e.profession.lower().strip()
-            if prof not in VALID_PROFESSIONS:
+            spec = e.spec.lower().strip()
+            if spec not in SPEC_TO_PROFESSION:
                 continue
             enemies.append(
                 {
                     "character_name": e.character_name,
-                    "profession_id": prof,
+                    "profession_id": SPEC_TO_PROFESSION[spec],
+                    "spec_id": spec,
                 }
             )
 
