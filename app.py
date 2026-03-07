@@ -24,11 +24,14 @@ AUTH_ENABLED = bool(AUTH_USERNAME and AUTH_PASSWORD)
 security = HTTPBasic(auto_error=False)
 
 
+OPEN_PATHS = {"/health", "/ready"}
+
+
 async def verify_credentials(
     request: Request,
     credentials: HTTPBasicCredentials | None = Depends(security),
 ):
-    if not AUTH_ENABLED:
+    if not AUTH_ENABLED or request.url.path in OPEN_PATHS:
         return None
     if credentials is None:
         raise HTTPException(
