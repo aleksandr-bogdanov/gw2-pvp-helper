@@ -329,6 +329,7 @@ async def parse_scoreboard(request: ScoreboardRequest):
         scoreboard_agent = Agent(
             ClaudeCodeModel(model="haiku"),
             output_type=ParsedScoreboard,
+            retries=3,
             system_prompt=(
                 "Extract the ENEMY team from this GW2 PvP scoreboard screenshot. "
                 "The scoreboard shows two teams (red/blue backgrounds). Extract the team that is NOT "
