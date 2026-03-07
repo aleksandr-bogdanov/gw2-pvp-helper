@@ -1,3 +1,11 @@
 {
-  "$schema": "https://schema.railpack.com"
+  "$schema": "https://schema.railpack.com",
+  "packages": {
+    "node": "22"
+  },
+  "steps": {
+    "install-claude-cli": {
+      "commands": ["npm install -g @anthropic-ai/claude-code"]
+    }
+  }
 }
