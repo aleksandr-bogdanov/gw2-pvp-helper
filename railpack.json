@@ -7,6 +7,9 @@
     "install-claude-cli": {
       "commands": [
         "npm install -g @anthropic-ai/claude-code"
+      ],
+      "deployOutputs": [
+        { "include": ["/mise/installs/node"] }
       ]
     }
   }
