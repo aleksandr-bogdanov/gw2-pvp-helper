@@ -7,9 +7,7 @@
     "install-claude-cli": {
       "commands": [
         "npm install -g @anthropic-ai/claude-code",
-        "find /mise -name claude -type f 2>/dev/null || true",
-        "ls -la /mise/shims/ 2>/dev/null || true",
-        "ls -la /mise/installs/node/*/bin/ 2>/dev/null || true"
+        "ln -sf /mise/installs/node/*/bin/claude /usr/local/bin/claude"
       ]
     }
   }
