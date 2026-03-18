@@ -1,0 +1,11 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gw2test
+      POSTGRES_PASSWORD: gw2test
+      POSTGRES_DB: gw2test
+    ports:
+      - '5499:5432'
+    tmpfs:
+      - /var/lib/postgresql/data

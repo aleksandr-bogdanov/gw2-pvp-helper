@@ -5,7 +5,10 @@ import { userProfiles } from '$lib/server/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { json } from '@sveltejs/kit';
 import type { PlayerInfo, MapInfo, ProfileMatchups } from '$lib/types.js';
+import { checkAdviceUsage, decrementAdviceCalls } from '$lib/server/usage.js';
+import Anthropic from '@anthropic-ai/sdk';
 
 // --- Normalize matchups from DB (handles old {threat_level, notes} and new {threat, tip} formats) ---
 
@@ -208,6 +211,28 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const { myTeam, enemyTeam, map, profileId } = await request.json();
 	const userId = locals.effectiveUserId;
 
+	// --- Usage limit check ---
+	let activeClient = anthropic;
+	let activeModel = 'claude-sonnet-4-6';
+
+	if (userId) {
+		const usage = await checkAdviceUsage(userId);
+		if (!usage.allowed) {
+			return json(
+				{ error: 'Free advice calls exhausted', remaining: 0, byok_available: true },
+				{ status: 429 }
+			);
+		}
+
+		if (usage.isByok && usage.apiKey) {
+			activeClient = new Anthropic({ apiKey: usage.apiKey });
+			activeModel = usage.model ?? 'claude-sonnet-4-6';
+		} else {
+			// Decrement counter for free-tier users (before streaming, to prevent races)
+			await decrementAdviceCalls(userId);
+		}
+	}
+
 	// Load active profile (by explicit ID or find the active one)
 	let profile: {
 		profilePrompt: string | null;
@@ -244,8 +269,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	);
 	const userMessage = buildUserPrompt(myTeam, enemyTeam, map, buildLabel, role);
 
-	const stream = await anthropic.messages.stream({
-		model: 'claude-sonnet-4-6',
+	const stream = await activeClient.messages.stream({
+		model: activeModel,
 		max_tokens: 1500,
 		system: systemBlocks,
 		messages: [{ role: 'user', content: userMessage }]
