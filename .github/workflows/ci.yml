@@ -12,6 +12,10 @@ concurrency:
 
 env:
   BUN_VERSION: "1.3.10"
+  # SvelteKit inlines $env/static/private at build time, so these must be set
+  # even for CI builds that never connect to real services.
+  DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+  ANTHROPIC_API_KEY: sk-ant-ci-dummy-key
 
 jobs:
   typecheck:
@@ -38,8 +42,6 @@ jobs:
       # Build first so .svelte-kit types are generated
       - name: Build (generates types)
         run: bun run build
-        env:
-          DATABASE_URL: postgres://dummy:dummy@localhost:5432/dummy
 
       - name: Type check
         run: bun run check
@@ -111,8 +113,6 @@ jobs:
 
       - name: Build
         run: bun run build
-        env:
-          DATABASE_URL: postgres://dummy:dummy@localhost:5432/dummy
 
       - name: Verify build output
         run: test -f build/index.js
