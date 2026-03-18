@@ -42,6 +42,14 @@
 		currentTheme = themes[(idx + 1) % themes.length].id;
 	}
 
+	let isAdmin = $state(false);
+
+	if (browser) {
+		fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(data => {
+			if (data?.user?.role === 'admin') isAdmin = true;
+		}).catch(() => {});
+	}
+
 	let scanning = $state(false);
 	let scanError = $state('');
 	let scanStep = $state(0); // 0=finding, 1=classifying, 2=reading, 3=detecting
@@ -134,7 +142,8 @@
 					{ href: '/last-match', label: 'Last Match' },
 					{ href: '/history', label: 'History' },
 					{ href: '/players', label: 'Players' },
-					{ href: '/profiles', label: 'Profiles' }
+					{ href: '/profiles', label: 'Profiles' },
+					...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : [])
 				] as link}
 					<a
 						href={link.href}
@@ -187,7 +196,7 @@
 		</div>
 	{/if}
 
-	<main class="mx-auto {page.url.pathname.startsWith('/players') ? 'max-w-6xl' : 'max-w-3xl'} px-6 py-5">
+	<main class="mx-auto {page.url.pathname.startsWith('/players') || page.url.pathname.startsWith('/admin') ? 'max-w-6xl' : 'max-w-3xl'} px-6 py-5">
 		{@render children()}
 	</main>
 </div>

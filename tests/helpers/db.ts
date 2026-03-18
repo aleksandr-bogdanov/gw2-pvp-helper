@@ -41,7 +41,7 @@ export async function runMigrations() {
 /** Clean all tables using TRUNCATE CASCADE for clean state + reset sequences */
 export async function cleanTables() {
 	await client.unsafe(`
-		TRUNCATE TABLE match_players, matches, user_profiles, sessions, used_invite_codes, users, players
+		TRUNCATE TABLE match_players, matches, user_profiles, training_samples, minimap_references, sessions, used_invite_codes, users, players
 		RESTART IDENTITY CASCADE
 	`);
 }
