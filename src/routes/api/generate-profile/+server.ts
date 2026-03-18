@@ -5,6 +5,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { checkProfileUsage, decrementProfileGens } from '$lib/server/usage.js';
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '$lib/server/logger.js';
 
 const profileGenPrompt = readFileSync(resolve('data', 'profile-generation-prompt.md'), 'utf-8');
 
@@ -32,7 +33,7 @@ let weaponSkillsData: WeaponSkillsData | null = null;
 try {
 	weaponSkillsData = JSON.parse(readFileSync(resolve('data', 'weapon-skills.json'), 'utf-8'));
 } catch {
-	console.warn('weapon-skills.json not found — run: npx tsx scripts/fetch-gw2-api.ts');
+	logger.warn({ event: 'weapon_skills_missing' }, 'weapon-skills.json not found — run: bun run fetch-api');
 }
 
 /**

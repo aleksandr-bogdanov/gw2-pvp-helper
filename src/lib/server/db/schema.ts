@@ -80,7 +80,37 @@ export const matches = pgTable('matches', {
 	notes: text('notes'),
 	screenshotHash: text('screenshot_hash'),
 	adviceText: text('advice_text'),
+	adviceRaw: text('advice_raw'),
 	timestamp: timestamp('timestamp').defaultNow()
+});
+
+// --- Training Data ---
+
+export const trainingSamples = pgTable('training_samples', {
+	id: serial('id').primaryKey(),
+	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+	screenshotHash: text('screenshot_hash').unique().notNull(),
+	screenshotPath: text('screenshot_path').notNull(),
+	resolution: text('resolution'),
+	uiSize: text('ui_size'),
+	deviceInfo: jsonb('device_info'),
+	scanResult: jsonb('scan_result'),
+	userCorrections: jsonb('user_corrections'),
+	confidenceScores: jsonb('confidence_scores'),
+	anchorPosition: jsonb('anchor_position'),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	reviewedByAdmin: boolean('reviewed_by_admin').default(false).notNull()
+});
+
+// --- Minimap References ---
+
+export const minimapReferences = pgTable('minimap_references', {
+	id: serial('id').primaryKey(),
+	mapId: text('map_id').notNull(),
+	source: text('source').notNull().default('static'),
+	screenshotHash: text('screenshot_hash'),
+	thumbnailData: text('thumbnail_data').notNull(),
+	createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
 export const matchPlayers = pgTable('match_players', {
