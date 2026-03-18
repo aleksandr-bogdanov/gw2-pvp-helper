@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { db } from '$lib/server/db/index.js';
 import { matches, matchPlayers, players } from '$lib/server/db/schema.js';
-import { eq, desc, inArray, count } from 'drizzle-orm';
+import { eq, desc, inArray, count, and } from 'drizzle-orm';
 import { existsSync, unlinkSync } from 'fs';
 import { resolve } from 'path';
 import { learnMinimapReference } from '$lib/server/scan/minimap.js';
@@ -30,18 +30,25 @@ function resolveScreenshotPath(hash: string | null): string | null {
 
 // --- GET: Fetch match history ---
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
 	const limit = parseInt(url.searchParams.get('limit') ?? '50');
 	const offset = parseInt(url.searchParams.get('offset') ?? '0');
+	const userId = locals.effectiveUserId;
 
-	const [{ total: totalCount }] = await db.select({ total: count() }).from(matches);
+	const countQuery = userId
+		? db.select({ total: count() }).from(matches).where(eq(matches.userId, userId))
+		: db.select({ total: count() }).from(matches);
+	const [{ total: totalCount }] = await countQuery;
 
-	const matchList = await db
+	const baseQuery = db
 		.select()
 		.from(matches)
 		.orderBy(desc(matches.timestamp))
 		.limit(limit)
 		.offset(offset);
+	const matchList = userId
+		? await baseQuery.where(eq(matches.userId, userId))
+		: await baseQuery;
 
 	const matchIds = matchList.map((m) => m.matchId);
 	const allMatchPlayers = matchIds.length > 0
@@ -84,8 +91,9 @@ export const GET: RequestHandler = async ({ url }) => {
 
 // --- POST: Save a new match ---
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const { myTeam, enemyTeam, map, userTeamColor, userProfileId, screenshotHash } = await request.json();
+	const userId = locals.effectiveUserId;
 
 	if (!myTeam || !enemyTeam) {
 		throw error(400, 'Missing team data');
@@ -120,6 +128,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const [match] = await db
 		.insert(matches)
 		.values({
+			userId: userId ?? null,
 			userProfileId: userProfileId ?? null,
 			userTeamColor: userTeamColor ?? null,
 			map: map ?? null,
@@ -167,14 +176,18 @@ export const POST: RequestHandler = async ({ request }) => {
 
 // --- PATCH: Update result or advice text ---
 
-export const PATCH: RequestHandler = async ({ request }) => {
+export const PATCH: RequestHandler = async ({ request, locals }) => {
 	const { matchId, result, adviceText, map, updatePlayers, userTeamColor: patchTeamColor } = await request.json();
+	const userId = locals.effectiveUserId;
 
 	if (!matchId) {
 		throw error(400, 'Missing matchId');
 	}
 
-	const [current] = await db.select().from(matches).where(eq(matches.matchId, matchId));
+	const whereClause = userId
+		? and(eq(matches.matchId, matchId), eq(matches.userId, userId))
+		: eq(matches.matchId, matchId);
+	const [current] = await db.select().from(matches).where(whereClause);
 	if (!current) {
 		throw error(404, 'Match not found');
 	}
@@ -253,14 +266,18 @@ export const PATCH: RequestHandler = async ({ request }) => {
 
 // --- DELETE: Remove a match ---
 
-export const DELETE: RequestHandler = async ({ request }) => {
+export const DELETE: RequestHandler = async ({ request, locals }) => {
 	const { matchId } = await request.json();
+	const userId = locals.effectiveUserId;
 
 	if (!matchId) {
 		throw error(400, 'Missing matchId');
 	}
 
-	const [match] = await db.select().from(matches).where(eq(matches.matchId, matchId));
+	const deleteWhere = userId
+		? and(eq(matches.matchId, matchId), eq(matches.userId, userId))
+		: eq(matches.matchId, matchId);
+	const [match] = await db.select().from(matches).where(deleteWhere);
 	if (!match) {
 		throw error(404, 'Match not found');
 	}

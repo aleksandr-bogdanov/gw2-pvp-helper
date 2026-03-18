@@ -1,7 +1,39 @@
 import { pgTable, serial, text, boolean, integer, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';
 
+// --- Users & Auth ---
+
+export const users = pgTable('users', {
+	id: serial('id').primaryKey(),
+	username: text('username').unique().notNull(),
+	inviteCodeUsed: text('invite_code_used').notNull(),
+	role: text('role').default('user').notNull(),
+	deviceInfo: jsonb('device_info'),
+	adviceCallsRemaining: integer('advice_calls_remaining').default(15).notNull(),
+	profileGensRemaining: integer('profile_gens_remaining').default(3).notNull(),
+	byokApiKeyEncrypted: text('byok_api_key_encrypted'),
+	byokModelPreference: text('byok_model_preference').default('claude-sonnet-4-6'),
+	consentGivenAt: timestamp('consent_given_at'),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	lastSeenAt: timestamp('last_seen_at').defaultNow().notNull()
+});
+
+export const sessions = pgTable('sessions', {
+	token: text('token').primaryKey(),
+	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+	expiresAt: timestamp('expires_at').notNull()
+});
+
+export const usedInviteCodes = pgTable('used_invite_codes', {
+	code: text('code').primaryKey(),
+	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+	usedAt: timestamp('used_at').defaultNow().notNull()
+});
+
+// --- Game Data ---
+
 export const userProfiles = pgTable('user_profiles', {
 	id: serial('id').primaryKey(),
+	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
 	characterName: text('character_name').notNull(),
 	profession: text('profession').notNull(),
 	spec: text('spec').notNull(),
@@ -40,6 +72,7 @@ export const players = pgTable('players', {
 
 export const matches = pgTable('matches', {
 	matchId: uuid('match_id').primaryKey().defaultRandom(),
+	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
 	userProfileId: integer('user_profile_id').references(() => userProfiles.id),
 	userTeamColor: text('user_team_color'),
 	map: text('map'),

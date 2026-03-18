@@ -2,28 +2,44 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db/index.js';
 import { userProfiles } from '$lib/server/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and, count as countFn } from 'drizzle-orm';
 
-// GET all profiles
-export const GET: RequestHandler = async () => {
-	const profiles = await db.select().from(userProfiles).orderBy(userProfiles.createdAt);
+// GET all profiles (scoped to current user)
+export const GET: RequestHandler = async ({ locals }) => {
+	const userId = locals.effectiveUserId;
+	if (!userId) {
+		// Backward compat: return all if no auth (shouldn't happen with auth guard, but safe)
+		const profiles = await db.select().from(userProfiles).orderBy(userProfiles.createdAt);
+		return json(profiles);
+	}
+
+	const profiles = await db
+		.select()
+		.from(userProfiles)
+		.where(eq(userProfiles.userId, userId))
+		.orderBy(userProfiles.createdAt);
 	return json(profiles);
 };
 
 // POST create new profile
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json();
 	const { characterName, profession, spec, buildLabel, role, weaponsMain, weaponsSwap, profilePrompt, rune, relic, amulet, sigilsMain, sigilsSwap, buildCode } = body;
+	const userId = locals.effectiveUserId;
 
 	if (!characterName || !profession || !spec || !role) {
 		throw error(400, 'Missing required fields: characterName, profession, spec, role');
 	}
 
-	// If this is the first profile, make it active
-	const existing = await db.select().from(userProfiles);
-	const isActive = existing.length === 0;
+	// If this is the first profile for this user, make it active
+	const countQuery = userId
+		? db.select({ total: countFn() }).from(userProfiles).where(eq(userProfiles.userId, userId))
+		: db.select({ total: countFn() }).from(userProfiles);
+	const [{ total }] = await countQuery;
+	const isActive = total === 0;
 
 	const [profile] = await db.insert(userProfiles).values({
+		userId: userId ?? null,
 		characterName,
 		profession,
 		spec,
@@ -48,18 +64,24 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 // PATCH update profile or set active
-export const PATCH: RequestHandler = async ({ request }) => {
+export const PATCH: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json();
 	const { id, setActive, ...updates } = body;
+	const userId = locals.effectiveUserId;
 
 	if (!id) {
 		throw error(400, 'Missing profile id');
 	}
 
 	if (setActive) {
-		// Deactivate all, then activate this one
-		await db.update(userProfiles).set({ isActive: false });
-		await db.update(userProfiles).set({ isActive: true }).where(eq(userProfiles.id, id));
+		// Deactivate all user's profiles, then activate this one
+		if (userId) {
+			await db.update(userProfiles).set({ isActive: false }).where(eq(userProfiles.userId, userId));
+			await db.update(userProfiles).set({ isActive: true }).where(and(eq(userProfiles.id, id), eq(userProfiles.userId, userId)));
+		} else {
+			await db.update(userProfiles).set({ isActive: false });
+			await db.update(userProfiles).set({ isActive: true }).where(eq(userProfiles.id, id));
+		}
 		const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.id, id));
 		return json(profile);
 	}
@@ -84,19 +106,26 @@ export const PATCH: RequestHandler = async ({ request }) => {
 	if (updates.profilePrompt !== undefined) updateData.profilePrompt = updates.profilePrompt;
 	if (updates.matchups !== undefined) updateData.matchups = updates.matchups;
 
-	const [profile] = await db.update(userProfiles).set(updateData).where(eq(userProfiles.id, id)).returning();
+	const whereClause = userId
+		? and(eq(userProfiles.id, id), eq(userProfiles.userId, userId))
+		: eq(userProfiles.id, id);
+	const [profile] = await db.update(userProfiles).set(updateData).where(whereClause).returning();
 	return json(profile);
 };
 
 // DELETE profile
-export const DELETE: RequestHandler = async ({ request }) => {
+export const DELETE: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json();
 	const { id } = body;
+	const userId = locals.effectiveUserId;
 
 	if (!id) {
 		throw error(400, 'Missing profile id');
 	}
 
-	await db.delete(userProfiles).where(eq(userProfiles.id, id));
+	const whereClause = userId
+		? and(eq(userProfiles.id, id), eq(userProfiles.userId, userId))
+		: eq(userProfiles.id, id);
+	await db.delete(userProfiles).where(whereClause);
 	return json({ success: true });
 };
