@@ -1,8 +1,10 @@
-import { error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { anthropic } from '$lib/server/anthropic.js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { checkProfileUsage, decrementProfileGens } from '$lib/server/usage.js';
+import Anthropic from '@anthropic-ai/sdk';
 
 const profileGenPrompt = readFileSync(resolve('data', 'profile-generation-prompt.md'), 'utf-8');
 
@@ -150,7 +152,28 @@ function parseProfileAndMatchups(fullText: string): {
 	return { profilePrompt, matchups };
 }
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+	const userId = locals.effectiveUserId;
+
+	// --- Usage limit check ---
+	let activeClient = anthropic;
+
+	if (userId) {
+		const usage = await checkProfileUsage(userId);
+		if (!usage.allowed) {
+			return json(
+				{ error: 'Free profile generations exhausted', remaining: 0, byok_available: true },
+				{ status: 429 }
+			);
+		}
+
+		if (usage.isByok && usage.apiKey) {
+			activeClient = new Anthropic({ apiKey: usage.apiKey });
+		} else {
+			await decrementProfileGens(userId);
+		}
+	}
+
 	const body = await request.json();
 	const { profession, spec, role, weaponsMain, weaponsSwap, buildLabel, playstyle, weaknesses, decodedBuild, rune, relic, amulet, sigilsMain, sigilsSwap } = body;
 
@@ -202,7 +225,7 @@ ${playstyle || 'No description provided. Generate a basic profile for this spec 
 
 ${weaknesses ? `What gets them killed most often:\n${weaknesses}` : ''}`;
 
-	const stream = await anthropic.messages.stream({
+	const stream = await activeClient.messages.stream({
 		model: 'claude-opus-4-6',
 		max_tokens: 3000,
 		system: systemPrompt,
