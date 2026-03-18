@@ -2,7 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { anthropic } from '$lib/server/anthropic.js';
 import { db } from '$lib/server/db/index.js';
 import { userProfiles } from '$lib/server/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import type { PlayerInfo, MapInfo, ProfileMatchups } from '$lib/types.js';
@@ -204,8 +204,9 @@ REMINDER: Focus order must contain ONLY enemies. Per-enemy sections must each be
 
 // --- Handler ---
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const { myTeam, enemyTeam, map, profileId } = await request.json();
+	const userId = locals.effectiveUserId;
 
 	// Load active profile (by explicit ID or find the active one)
 	let profile: {
@@ -216,16 +217,16 @@ export const POST: RequestHandler = async ({ request }) => {
 	} | null = null;
 
 	if (profileId) {
-		const [found] = await db
-			.select()
-			.from(userProfiles)
-			.where(eq(userProfiles.id, profileId));
+		const conditions = userId
+			? and(eq(userProfiles.id, profileId), eq(userProfiles.userId, userId))
+			: eq(userProfiles.id, profileId);
+		const [found] = await db.select().from(userProfiles).where(conditions);
 		if (found) profile = found;
 	} else {
-		const [active] = await db
-			.select()
-			.from(userProfiles)
-			.where(eq(userProfiles.isActive, true));
+		const conditions = userId
+			? and(eq(userProfiles.isActive, true), eq(userProfiles.userId, userId))
+			: eq(userProfiles.isActive, true);
+		const [active] = await db.select().from(userProfiles).where(conditions);
 		if (active) profile = active;
 	}
 

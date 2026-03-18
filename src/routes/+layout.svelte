@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { browser } from '$app/environment';
+	import LoginGate from '$lib/components/LoginGate.svelte';
 
 	let { children } = $props();
 
@@ -120,6 +121,7 @@
 
 <svelte:window onpaste={handlePaste} />
 
+<LoginGate>
 <div class="min-h-screen bg-(--color-bg)">
 	<!-- Navbar -->
 	<nav class="glass sticky top-0 z-40 border-b border-(--color-border) shadow-sm">
@@ -189,3 +191,4 @@
 		{@render children()}
 	</main>
 </div>
+</LoginGate>

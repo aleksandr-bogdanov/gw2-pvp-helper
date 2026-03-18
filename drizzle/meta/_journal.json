@@ -57,6 +57,13 @@
       "when": 1773104653421,
       "tag": "0007_red_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773800478033,
+      "tag": "0008_powerful_guardsmen",
+      "breakpoints": true
     }
   ]
 }
