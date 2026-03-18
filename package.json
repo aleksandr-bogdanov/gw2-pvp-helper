@@ -15,8 +15,6 @@
 		"test:watch": "vitest"
 	},
 	"devDependencies": {
-		"@honeycombio/opentelemetry-node": "^0.7.2",
-		"@opentelemetry/auto-instrumentations-node": "^0.71.0",
 		"@sveltejs/adapter-node": "^5.5.4",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",

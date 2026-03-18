@@ -8,7 +8,7 @@ import * as schema from '../../src/lib/server/db/schema.js';
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 
-const TEST_DATABASE_URL = 'postgresql://gw2test:gw2test@localhost:5499/gw2test';
+const TEST_DATABASE_URL = process.env.DATABASE_URL || 'postgresql://gw2test:gw2test@localhost:5499/gw2test';
 
 const client = postgres(TEST_DATABASE_URL);
 export const testDb = drizzle(client, { schema });
