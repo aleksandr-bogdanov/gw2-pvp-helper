@@ -126,32 +126,47 @@ function buildMatchContext(
 
 // --- Prompt assembly ---
 
+interface SystemBlock {
+	type: 'text';
+	text: string;
+	cache_control?: { type: 'ephemeral' };
+}
+
 function buildSystemPrompt(
 	profilePrompt: string | null,
 	role: string,
 	enemyTeam: PlayerInfo[],
 	myTeam: PlayerInfo[],
 	matchups: ProfileMatchups | null
-): string {
+): SystemBlock[] {
 	// Layer 1: Universal game knowledge (slim — no meta profiles)
 	const layer1 = loadDataFile('universal-game-knowledge.md');
 
-	// Dynamic: match-specific profiles + matchup assessments
-	const matchContext = buildMatchContext(enemyTeam, myTeam, matchups);
-
-	// Layer 2: Active character profile (from DB)
-	const layer2 = profilePrompt
-		? `\n\nTHE PLAYER'S BUILD:\n${profilePrompt}`
-		: '';
-
-	// Layer 3: Output format (based on role)
+	// Layer 3: Output format (based on role — only 2 variants, both static)
 	const isSupport =
 		role === 'support' || role === 'heal' || role === 'supp' || role === 'alac';
 	const layer3 = isSupport
 		? loadDataFile('output-format-support.md')
 		: loadDataFile('output-format-dps.md');
 
-	return `You are a GW2 PvP tactical advisor.\n\n${layer1}${matchContext}${layer2}\n\n${layer3}`;
+	// Static prefix: game knowledge + output format (~3500 tokens, identical across calls per role)
+	// Cached via Anthropic prompt caching — saves ~35% on input token costs
+	const staticPrefix = `You are a GW2 PvP tactical advisor.\n\n${layer1}\n\n${layer3}`;
+
+	// Dynamic: match-specific profiles + matchup assessments + player build
+	const matchContext = buildMatchContext(enemyTeam, myTeam, matchups);
+	const layer2 = profilePrompt
+		? `\n\nTHE PLAYER'S BUILD:\n${profilePrompt}`
+		: '';
+	const dynamicSuffix = `${matchContext}${layer2}`;
+
+	const blocks: SystemBlock[] = [
+		{ type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } }
+	];
+	if (dynamicSuffix.trim()) {
+		blocks.push({ type: 'text', text: dynamicSuffix });
+	}
+	return blocks;
 }
 
 function buildUserPrompt(
@@ -219,7 +234,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const role = profile?.role ?? 'dps';
 	const matchups = normalizeMatchups(profile?.matchups) ?? null;
 
-	const systemPrompt = buildSystemPrompt(
+	const systemBlocks = buildSystemPrompt(
 		profilePrompt,
 		role,
 		enemyTeam,
@@ -231,7 +246,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const stream = await anthropic.messages.stream({
 		model: 'claude-sonnet-4-6',
 		max_tokens: 1500,
-		system: systemPrompt,
+		system: systemBlocks,
 		messages: [{ role: 'user', content: userMessage }]
 	});
 

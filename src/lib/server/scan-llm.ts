@@ -2,12 +2,10 @@ import { anthropic } from './anthropic.js';
 import type { ScanResult } from '$lib/types.js';
 import { getDefaultRole, getProfessionForSpec } from '$lib/game-data.js';
 import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
 import sharp from 'sharp';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REFERENCE_IMAGE_PATH = resolve(__dirname, '../../../../data/profession-icons/reference.png');
+const REFERENCE_IMAGE_PATH = resolve(process.cwd(), 'data', 'profession-icons', 'reference.png');
 
 let referenceImageBase64: string | null = null;
 function getReferenceImage(): string {
