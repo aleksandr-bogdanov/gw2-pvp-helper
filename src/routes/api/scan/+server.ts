@@ -87,7 +87,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			const avgConfidence = [...(scanResult.red_team ?? []), ...(scanResult.blue_team ?? [])]
 				.reduce((sum, p) => sum + (p.spec_confidence ?? 0), 0) / 10;
 			span.setAttribute('scan.confidence_avg', avgConfidence);
-			span.setAttribute('scan.map', scanResult.map_detection?.detected_map ?? 'unknown');
+			span.setAttribute('scan.map', scanResult.detected_map?.mapId ?? 'unknown');
 			return scanResult;
 		});
 	} catch (e) {
@@ -173,7 +173,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		};
 	}
 
-	logger.info({ event: 'scan_complete', screenshotHash, map: result.map_detection?.detected_map ?? 'unknown' }, 'Scan completed successfully');
+	logger.info({ event: 'scan_complete', screenshotHash, map: result.detected_map?.mapId ?? 'unknown' }, 'Scan completed successfully');
 
 	// Store training sample (fire and forget)
 	const userId = locals?.effectiveUserId ?? null;
@@ -189,17 +189,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		screenshotHash,
 		screenshotPath: screenshotPath,
 		resolution: resolution || null,
-		uiSize: result.ui_size ?? null,
+		uiSize: null,
 		deviceInfo: userId ? undefined : null,
 		scanResult: {
 			red_team: result.red_team,
 			blue_team: result.blue_team,
-			map_detection: result.map_detection,
-			game_mode: result.game_mode,
-			ui_size: result.ui_size
+			detected_map: result.detected_map ?? null,
+			game_mode: result.detected_map?.mode ?? null
 		},
 		confidenceScores,
-		anchorPosition: result.anchor_position ?? null
+		anchorPosition: null
 	}).onConflictDoNothing().catch((e) => {
 		logger.warn({ event: 'training_sample_failed', screenshotHash, error: e instanceof Error ? e.message : String(e) }, 'Failed to save training sample');
 	});

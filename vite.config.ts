@@ -19,5 +19,12 @@ export default defineConfig({
 	server: {
 		port: 5174,
 		allowedHosts: true
+	},
+	ssr: {
+		external: [
+			'@opentelemetry/api',
+			'pino',
+			'sharp'
+		]
 	}
 });

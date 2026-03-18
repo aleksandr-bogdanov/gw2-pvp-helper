@@ -1,1 +1,0 @@
-ALTER TABLE "match_players" ADD COLUMN "is_user" boolean DEFAULT false;
