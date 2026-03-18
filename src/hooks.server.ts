@@ -38,6 +38,26 @@ process.on('SIGTERM', async () => {
 	process.exit(0);
 });
 
+/** Max request body size in bytes (10 MB) */
+const MAX_BODY_SIZE = 10 * 1024 * 1024;
+
+/** Paths subject to body size limits */
+const SIZE_LIMITED_PATHS = ['/api/scan', '/api/scan/upload'];
+
+const bodySizeHandle: Handle = async ({ event, resolve }) => {
+	if (event.request.method === 'POST' && SIZE_LIMITED_PATHS.some((p) => event.url.pathname === p)) {
+		const contentLength = event.request.headers.get('content-length');
+		if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
+			logger.warn(
+				{ event: 'body_too_large', path: event.url.pathname, size: contentLength },
+				'Request body exceeds size limit'
+			);
+			return json({ error: 'Request body too large', maxBytes: MAX_BODY_SIZE }, { status: 413 });
+		}
+	}
+	return resolve(event);
+};
+
 /** Routes that don't require authentication */
 const PUBLIC_PATHS = ['/api/health', '/api/auth/'];
 
@@ -95,10 +115,10 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-// Compose handles: Sentry wraps auth for error tracking
+// Compose handles: body size → auth → Sentry error tracking
 export const handle: Handle = sentryDsn
-	? sequence(Sentry.sentryHandle(), authHandle)
-	: authHandle;
+	? sequence(bodySizeHandle, Sentry.sentryHandle(), authHandle)
+	: sequence(bodySizeHandle, authHandle);
 
 // Error handler — Sentry captures server errors with context
 export const handleError: HandleServerError = sentryDsn
