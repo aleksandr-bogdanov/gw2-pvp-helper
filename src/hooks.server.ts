@@ -84,6 +84,12 @@ const authHandle: Handle = async ({ event, resolve }) => {
 			logger.warn({ event: 'auth_failed', path: event.url.pathname }, 'Unauthenticated API request rejected');
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
+
+		// Admin guard: /api/admin/* requires admin role
+		if (event.url.pathname.startsWith('/api/admin/') && event.locals.user.role !== 'admin') {
+			logger.warn({ event: 'admin_forbidden', path: event.url.pathname, userId: event.locals.user.id }, 'Non-admin access to admin API rejected');
+			return json({ error: 'Forbidden' }, { status: 403 });
+		}
 	}
 
 	return resolve(event);

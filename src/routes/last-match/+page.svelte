@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { maps, getSpecLabel, getProfessionColor } from '$lib/game-data.js';
 
 	interface MatchPlayer {
@@ -40,6 +41,15 @@
 	let loading = $state(true);
 	let screenshotZoomed = $state(false);
 	let editingMap = $state(false);
+	let isAdmin = $state(false);
+	let showDebug = $state(false);
+	let debugData = $state<{
+		adviceRaw: string | null;
+		systemPrompt: string | null;
+		profilePrompt: string | null;
+		userMessage: string | null;
+	} | null>(null);
+	let debugLoading = $state(false);
 
 	async function setMap(mapId: string) {
 		if (!match) return;
@@ -87,16 +97,37 @@
 
 	onMount(async () => {
 		try {
-			const res = await fetch('/api/match?limit=1');
-			if (res.ok) {
-				const data = await res.json();
+			const [matchRes, meRes] = await Promise.all([
+				fetch('/api/match?limit=1'),
+				fetch('/api/auth/me')
+			]);
+			if (matchRes.ok) {
+				const data = await matchRes.json();
 				const matches = data.matches ?? data;
 				if (matches.length > 0) match = matches[0];
+			}
+			if (meRes.ok) {
+				const meData = await meRes.json();
+				isAdmin = meData.user?.role === 'admin';
 			}
 		} finally {
 			loading = false;
 		}
 	});
+
+	async function loadDebugData() {
+		if (!match) return;
+		debugLoading = true;
+		try {
+			const res = await fetch(`/api/admin/debug/${match.matchId}`);
+			if (res.ok) {
+				debugData = await res.json();
+				showDebug = true;
+			}
+		} finally {
+			debugLoading = false;
+		}
+	}
 
 	function getMapName(mapId: string | null): string {
 		if (!mapId) return 'Unknown';
@@ -398,6 +429,16 @@
 			<div class="flex-1">
 				<div class="flex items-center gap-2">
 					<span class="text-[10px] font-bold uppercase tracking-wider text-(--color-text-tertiary)">Map</span>
+					{#if isAdmin}
+						<button
+							onclick={loadDebugData}
+							disabled={debugLoading}
+							class="ml-auto shrink-0 rounded border border-(--color-accent)/30 bg-(--color-accent)/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-(--color-accent) hover:bg-(--color-accent)/20 transition-colors cursor-pointer"
+							title="View debug data (admin)"
+						>
+							{debugLoading ? '...' : 'Debug'}
+						</button>
+					{/if}
 					{#if editingMap}
 						<select
 							class="rounded-lg bg-(--color-surface) border border-(--color-border) px-2 py-1 text-sm text-(--color-text) outline-none"
@@ -530,4 +571,49 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Debug modal (admin only) -->
+	{#if showDebug && debugData}
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+			onclick={(e) => { if (e.target === e.currentTarget) showDebug = false; }}
+			role="dialog"
+			tabindex="-1"
+		>
+			<div class="glass max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-xl p-6 border border-(--color-border) shadow-xl animate-modal-in m-4">
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-lg font-bold text-(--color-text)">Debug: Advice Raw</h2>
+					<button class="text-(--color-text-tertiary) hover:text-(--color-text) text-lg cursor-pointer transition-colors" onclick={() => (showDebug = false)}>&#10005;</button>
+				</div>
+
+				<div class="space-y-4">
+					<!-- Raw advice output -->
+					<div>
+						<p class="text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary) mb-1">advice_raw</p>
+						<pre class="rounded-lg bg-(--color-bg) border border-(--color-border) p-3 text-xs font-mono text-(--color-text) whitespace-pre-wrap max-h-64 overflow-y-auto">{debugData.adviceRaw ?? '(empty)'}</pre>
+					</div>
+
+					<!-- System prompt -->
+					<div>
+						<p class="text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary) mb-1">System Prompt</p>
+						<pre class="rounded-lg bg-(--color-bg) border border-(--color-border) p-3 text-xs font-mono text-(--color-text-secondary) whitespace-pre-wrap max-h-48 overflow-y-auto">{debugData.systemPrompt ?? '(empty)'}</pre>
+					</div>
+
+					<!-- Profile prompt -->
+					{#if debugData.profilePrompt}
+						<div>
+							<p class="text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary) mb-1">Profile Prompt</p>
+							<pre class="rounded-lg bg-(--color-bg) border border-(--color-border) p-3 text-xs font-mono text-(--color-text-secondary) whitespace-pre-wrap max-h-32 overflow-y-auto">{debugData.profilePrompt}</pre>
+						</div>
+					{/if}
+
+					<!-- User message -->
+					<div>
+						<p class="text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary) mb-1">User Message</p>
+						<pre class="rounded-lg bg-(--color-bg) border border-(--color-border) p-3 text-xs font-mono text-(--color-text-secondary) whitespace-pre-wrap max-h-48 overflow-y-auto">{debugData.userMessage ?? '(empty)'}</pre>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
 {/if}
