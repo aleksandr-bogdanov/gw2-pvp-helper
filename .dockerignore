@@ -1,0 +1,12 @@
+node_modules
+.svelte-kit
+tests/fixtures/
+static/screenshots/
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+*.md
+MEMORY/
+drizzle/meta/
