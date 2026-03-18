@@ -52,14 +52,18 @@
 
 	let scanning = $state(false);
 	let scanError = $state('');
-	let scanStep = $state(0); // 0=finding, 1=classifying, 2=reading, 3=detecting
+	let scanStep = $state(0);
 
 	const scanSteps = [
+		'Loading image...',
 		'Finding scoreboard...',
+		'Detecting map...',
 		'Classifying specs...',
-		'Reading names...',
-		'Detecting map...'
+		'Reading names...'
 	];
+
+	/** Beta flag: upload ALL screenshots regardless of confidence */
+	const BETA_UPLOAD_ALL = true;
 
 	async function handlePaste(e: ClipboardEvent) {
 		const items = e.clipboardData?.items;
@@ -88,40 +92,53 @@
 		if (!file) return;
 		e.preventDefault();
 
-		const mediaType = file.type || 'image/png';
 		scanning = true;
 		scanError = '';
 		scanStep = 0;
 
-		// Timed animation: advance steps every ~800ms to approximate pipeline stages
-		const stepTimer = setInterval(() => {
-			scanStep = Math.min(scanStep + 1, scanSteps.length - 1);
-		}, 800);
-
 		try {
-			const buffer = await file.arrayBuffer();
-			const base64 = btoa(
-				new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-			);
+			// Client-side scan: run CV pipeline in the browser
+			const { scanScreenshotClient, hasLowConfidence, blobToJpegBase64 } =
+				await import('$lib/scan-client/index.js');
 
-			const res = await fetch('/api/scan', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ image: base64, mediaType })
+			const scanResult = await scanScreenshotClient(file, (step, _msg) => {
+				scanStep = step;
 			});
 
-			if (!res.ok) {
-				const err = await res.json();
-				throw new Error(err.message ?? 'Scan failed');
+			// Upload screenshot + result to server for training data + enrichment
+			const jpegBase64 = await blobToJpegBase64(file);
+			const shouldUpload = BETA_UPLOAD_ALL || hasLowConfidence(scanResult);
+
+			if (shouldUpload) {
+				const bitmap = await createImageBitmap(file);
+				const resolution = `${bitmap.width}x${bitmap.height}`;
+				bitmap.close();
+
+				const res = await fetch('/api/scan/upload', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						image: jpegBase64,
+						scanResult,
+						resolution
+					})
+				});
+
+				if (res.ok) {
+					// Use enriched result from server (has player history, user identification)
+					const enrichedResult = await res.json();
+					sessionStorage.setItem('scanResult', JSON.stringify(enrichedResult));
+					goto('/last-match');
+					return;
+				}
 			}
 
-			const result = await res.json();
-			sessionStorage.setItem('scanResult', JSON.stringify(result));
+			// If upload skipped or failed, use client result directly
+			sessionStorage.setItem('scanResult', JSON.stringify(scanResult));
 			goto('/last-match');
 		} catch (err) {
 			scanError = err instanceof Error ? err.message : 'Scan failed';
 		} finally {
-			clearInterval(stepTimer);
 			scanning = false;
 		}
 	}
