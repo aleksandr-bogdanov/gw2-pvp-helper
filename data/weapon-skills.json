@@ -1,0 +1,2743 @@
+{
+  "_meta": {
+    "fetchedAt": "2026-03-09T22:33:10.782Z",
+    "description": "GW2 weapon skills per profession. Re-run scripts/fetch-gw2-api.ts to update.",
+    "specializationNames": {
+      "5": "Druid",
+      "7": "Daredevil",
+      "18": "Berserker",
+      "27": "Dragonhunter",
+      "34": "Reaper",
+      "40": "Chronomancer",
+      "43": "Scrapper",
+      "48": "Tempest",
+      "52": "Herald",
+      "55": "Soulbeast",
+      "56": "Weaver",
+      "57": "Holosmith",
+      "58": "Deadeye",
+      "59": "Mirage",
+      "60": "Scourge",
+      "61": "Spellbreaker",
+      "62": "Firebrand",
+      "63": "Renegade",
+      "64": "Harbinger",
+      "66": "Virtuoso",
+      "67": "Catalyst",
+      "68": "Bladesworn",
+      "69": "Vindicator",
+      "70": "Mechanist",
+      "71": "Specter",
+      "72": "Untamed"
+    }
+  },
+  "professions": {
+    "guardian": {
+      "Axe": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Core Cleave"
+          },
+          {
+            "slot": 2,
+            "name": "Symbol of Vengeance"
+          },
+          {
+            "slot": 3,
+            "name": "Blazing Edge"
+          }
+        ],
+        "specialization": 62
+      },
+      "Focus": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Ray of Judgment"
+          },
+          {
+            "slot": 5,
+            "name": "Shield of Wrath"
+          }
+        ]
+      },
+      "Greatsword": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Whirling Wrath"
+          },
+          {
+            "slot": 3,
+            "name": "Leap of Faith"
+          },
+          {
+            "slot": 4,
+            "name": "Symbol of Resolution"
+          },
+          {
+            "slot": 5,
+            "name": "Binding Blade"
+          }
+        ]
+      },
+      "Hammer": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Hammer Swing"
+          },
+          {
+            "slot": 2,
+            "name": "Mighty Blow"
+          },
+          {
+            "slot": 3,
+            "name": "Zealot's Embrace"
+          },
+          {
+            "slot": 4,
+            "name": "Banish"
+          },
+          {
+            "slot": 5,
+            "name": "Ring of Warding"
+          }
+        ]
+      },
+      "Longbow": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Puncture Shot"
+          },
+          {
+            "slot": 2,
+            "name": "True Shot"
+          },
+          {
+            "slot": 3,
+            "name": "Deflecting Shot"
+          },
+          {
+            "slot": 4,
+            "name": "Symbol of Energy"
+          },
+          {
+            "slot": 5,
+            "name": "Hunter's Ward"
+          }
+        ],
+        "specialization": 27
+      },
+      "Mace": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "True Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Symbol of Faith"
+          },
+          {
+            "slot": 3,
+            "name": "Protector's Strike"
+          }
+        ]
+      },
+      "Pistol (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Through the Heart"
+          },
+          {
+            "slot": 2,
+            "name": "Peacekeeper"
+          },
+          {
+            "slot": 3,
+            "name": "Symbol of Ignition"
+          }
+        ]
+      },
+      "Pistol (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Hail of Justice"
+          },
+          {
+            "slot": 5,
+            "name": "Jurisdiction"
+          }
+        ]
+      },
+      "Scepter": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Orb of Wrath"
+          },
+          {
+            "slot": 2,
+            "name": "Symbol of Punishment"
+          },
+          {
+            "slot": 3,
+            "name": "Chains of Light"
+          }
+        ]
+      },
+      "Shield": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Shield of Judgment"
+          },
+          {
+            "slot": 4,
+            "name": "Shield of Judgment"
+          },
+          {
+            "slot": 5,
+            "name": "Shield of Absorption"
+          }
+        ]
+      },
+      "Staff": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Bolt of Wrath"
+          },
+          {
+            "slot": 2,
+            "name": "Holy Strike"
+          },
+          {
+            "slot": 3,
+            "name": "Symbol of Swiftness"
+          },
+          {
+            "slot": 4,
+            "name": "Empower"
+          },
+          {
+            "slot": 5,
+            "name": "Line of Warding"
+          }
+        ]
+      },
+      "Sword (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Sword of Wrath"
+          },
+          {
+            "slot": 2,
+            "name": "Symbol of Blades"
+          },
+          {
+            "slot": 3,
+            "name": "Zealot's Defense"
+          }
+        ]
+      },
+      "Sword (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Executioner's Calling"
+          },
+          {
+            "slot": 5,
+            "name": "Advancing Strike"
+          }
+        ]
+      },
+      "Torch": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Zealot's Flame"
+          },
+          {
+            "slot": 5,
+            "name": "Cleansing Flame"
+          }
+        ]
+      }
+    },
+    "revenant": {
+      "Axe": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Frigid Blitz"
+          },
+          {
+            "slot": 5,
+            "name": "Temporal Rift"
+          }
+        ]
+      },
+      "Greatsword": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Mist Swing"
+          },
+          {
+            "slot": 2,
+            "name": "Mist Unleashed"
+          },
+          {
+            "slot": 3,
+            "name": "Phantom's Onslaught"
+          },
+          {
+            "slot": 4,
+            "name": "Imperial Guard"
+          },
+          {
+            "slot": 5,
+            "name": "Eternity's Requiem"
+          }
+        ],
+        "specialization": 69
+      },
+      "Hammer": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Hammer Bolt"
+          },
+          {
+            "slot": 2,
+            "name": "Coalescence of Ruin"
+          },
+          {
+            "slot": 3,
+            "name": "Phase Smash"
+          },
+          {
+            "slot": 4,
+            "name": "Field of the Mists"
+          },
+          {
+            "slot": 5,
+            "name": "Drop the Hammer"
+          }
+        ]
+      },
+      "Mace": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Misery Swipe"
+          },
+          {
+            "slot": 2,
+            "name": "Searing Fissure"
+          },
+          {
+            "slot": 3,
+            "name": "Echoing Eruption"
+          }
+        ]
+      },
+      "Scepter": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Serene Slash"
+          },
+          {
+            "slot": 2,
+            "name": "Blossoming Aura"
+          },
+          {
+            "slot": 3,
+            "name": "Otherworldly Bond"
+          }
+        ]
+      },
+      "Shield": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Envoy of Exuberance"
+          },
+          {
+            "slot": 5,
+            "name": "Crystal Hibernation"
+          }
+        ],
+        "specialization": 52
+      },
+      "Shortbow": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Shattershot"
+          },
+          {
+            "slot": 2,
+            "name": "Bloodbane Path"
+          },
+          {
+            "slot": 3,
+            "name": "Sevenshot"
+          },
+          {
+            "slot": 4,
+            "name": "Spiritcrush"
+          },
+          {
+            "slot": 5,
+            "name": "Scorchrazor"
+          }
+        ],
+        "specialization": 63
+      },
+      "Staff": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Rapid Swipe"
+          },
+          {
+            "slot": 2,
+            "name": "Mender's Rebuke"
+          },
+          {
+            "slot": 3,
+            "name": "Warding Rift"
+          },
+          {
+            "slot": 4,
+            "name": "Renewing Wave"
+          },
+          {
+            "slot": 5,
+            "name": "Surge of the Mists"
+          }
+        ]
+      },
+      "Sword (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Preparation Thrust"
+          },
+          {
+            "slot": 2,
+            "name": "Chilling Isolation"
+          },
+          {
+            "slot": 3,
+            "name": "Unrelenting Assault"
+          }
+        ]
+      },
+      "Sword (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Shackling Wave"
+          },
+          {
+            "slot": 4,
+            "name": "Duelist's Preparation"
+          },
+          {
+            "slot": 5,
+            "name": "Deathstrike"
+          }
+        ]
+      }
+    },
+    "warrior": {
+      "Axe (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Chop"
+          },
+          {
+            "slot": 2,
+            "name": "Cyclone Axe"
+          },
+          {
+            "slot": 3,
+            "name": "Throw Axe"
+          }
+        ]
+      },
+      "Axe (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Dual Strike"
+          },
+          {
+            "slot": 5,
+            "name": "Whirling Axe"
+          }
+        ]
+      },
+      "Dagger (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Precise Cut"
+          },
+          {
+            "slot": 2,
+            "name": "Aura Slicer"
+          },
+          {
+            "slot": 3,
+            "name": "Disrupting Stab"
+          }
+        ],
+        "specialization": 61
+      },
+      "Dagger (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Wastrel's Ruin"
+          },
+          {
+            "slot": 5,
+            "name": "Bladestorm"
+          }
+        ],
+        "specialization": 61
+      },
+      "Greatsword": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Greatsword Swing"
+          },
+          {
+            "slot": 2,
+            "name": "Hundred Blades"
+          },
+          {
+            "slot": 3,
+            "name": "Whirlwind Attack"
+          },
+          {
+            "slot": 4,
+            "name": "Bladetrail"
+          },
+          {
+            "slot": 5,
+            "name": "Rush"
+          }
+        ]
+      },
+      "Hammer": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Hammer Swing"
+          },
+          {
+            "slot": 2,
+            "name": "Fierce Blow"
+          },
+          {
+            "slot": 3,
+            "name": "Hammer Shock"
+          },
+          {
+            "slot": 4,
+            "name": "Staggering Blow"
+          },
+          {
+            "slot": 5,
+            "name": "Backbreaker"
+          }
+        ]
+      },
+      "Longbow": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Dual Shot"
+          },
+          {
+            "slot": 2,
+            "name": "Fan of Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Arcing Arrow"
+          },
+          {
+            "slot": 4,
+            "name": "Smoldering Arrow"
+          },
+          {
+            "slot": 5,
+            "name": "Pin Down"
+          }
+        ]
+      },
+      "Mace (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Mace Smash"
+          },
+          {
+            "slot": 2,
+            "name": "Counterblow"
+          },
+          {
+            "slot": 3,
+            "name": "Pommel Bash"
+          }
+        ]
+      },
+      "Mace (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Crushing Blow"
+          },
+          {
+            "slot": 5,
+            "name": "Tremor"
+          }
+        ]
+      },
+      "Pistol": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Gunstinger"
+          },
+          {
+            "slot": 5,
+            "name": "Dragon's Roar"
+          }
+        ],
+        "specialization": 68
+      },
+      "Rifle": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Fierce Shot"
+          },
+          {
+            "slot": 2,
+            "name": "Volley"
+          },
+          {
+            "slot": 3,
+            "name": "Explosive Shell"
+          },
+          {
+            "slot": 4,
+            "name": "Brutal Shot"
+          },
+          {
+            "slot": 5,
+            "name": "Rifle Butt"
+          }
+        ]
+      },
+      "Shield": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Shield Bash"
+          },
+          {
+            "slot": 5,
+            "name": "Shield Stance"
+          }
+        ]
+      },
+      "Staff": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Balanced Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Valiant Leap"
+          },
+          {
+            "slot": 3,
+            "name": "Line Breaker"
+          },
+          {
+            "slot": 4,
+            "name": "Snap Pull"
+          },
+          {
+            "slot": 5,
+            "name": "Defiant Roar"
+          }
+        ]
+      },
+      "Sword (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Sever Artery"
+          },
+          {
+            "slot": 2,
+            "name": "Savage Leap"
+          },
+          {
+            "slot": 3,
+            "name": "Final Thrust"
+          }
+        ]
+      },
+      "Sword (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Impale"
+          },
+          {
+            "slot": 5,
+            "name": "Riposte"
+          }
+        ]
+      },
+      "Torch": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Blaze Breaker"
+          },
+          {
+            "slot": 5,
+            "name": "Flames of War"
+          }
+        ],
+        "specialization": 18
+      },
+      "Warhorn": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Charge"
+          },
+          {
+            "slot": 5,
+            "name": "Call of Valor"
+          }
+        ]
+      }
+    },
+    "engineer": {
+      "Hammer": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Positive Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Electro-whirl"
+          },
+          {
+            "slot": 3,
+            "name": "Rocket Charge"
+          },
+          {
+            "slot": 4,
+            "name": "Shock Shield"
+          },
+          {
+            "slot": 5,
+            "name": "Thunderclap"
+          }
+        ],
+        "specialization": 43
+      },
+      "Mace": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Mace Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Energizing Slam"
+          },
+          {
+            "slot": 3,
+            "name": "Rocket Fist Prototype"
+          }
+        ],
+        "specialization": 70
+      },
+      "Pistol (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Fragmentation Shot"
+          },
+          {
+            "slot": 2,
+            "name": "Poison Dart Volley"
+          },
+          {
+            "slot": 3,
+            "name": "Static Shot"
+          }
+        ]
+      },
+      "Pistol (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Blowtorch"
+          },
+          {
+            "slot": 5,
+            "name": "Glue Shot"
+          }
+        ]
+      },
+      "Rifle": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Rifle Burst"
+          },
+          {
+            "slot": 2,
+            "name": "Blunderbuss"
+          },
+          {
+            "slot": 3,
+            "name": "Net Shot"
+          },
+          {
+            "slot": 4,
+            "name": "Overcharged Shot"
+          },
+          {
+            "slot": 5,
+            "name": "Jump Shot"
+          }
+        ]
+      },
+      "Shield": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Magnetic Shield"
+          },
+          {
+            "slot": 5,
+            "name": "Static Shield"
+          }
+        ]
+      },
+      "Shortbow": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Arc Detonator"
+          },
+          {
+            "slot": 2,
+            "name": "Essence of Animated Sand"
+          },
+          {
+            "slot": 3,
+            "name": "Essence of Living Shadows"
+          },
+          {
+            "slot": 4,
+            "name": "Essence of Liquid Wrath"
+          },
+          {
+            "slot": 5,
+            "name": "Essence of Borrowed Time"
+          }
+        ]
+      },
+      "Sword": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Sun Edge"
+          },
+          {
+            "slot": 1,
+            "name": "Sun Edge"
+          },
+          {
+            "slot": 2,
+            "name": "Refraction Cutter"
+          },
+          {
+            "slot": 2,
+            "name": "Refraction Cutter"
+          },
+          {
+            "slot": 3,
+            "name": "Radiant Arc"
+          },
+          {
+            "slot": 3,
+            "name": "Radiant Arc"
+          }
+        ],
+        "specialization": 57
+      }
+    },
+    "ranger": {
+      "Axe (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Ricochet"
+          },
+          {
+            "slot": 2,
+            "name": "Splitblade"
+          },
+          {
+            "slot": 3,
+            "name": "Winter's Bite"
+          }
+        ]
+      },
+      "Axe (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Path of Scars"
+          },
+          {
+            "slot": 5,
+            "name": "Whirling Defense"
+          }
+        ]
+      },
+      "Dagger (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Groundwork Gouge"
+          },
+          {
+            "slot": 2,
+            "name": "Double Arc"
+          },
+          {
+            "slot": 3,
+            "name": "Instinctive Engage"
+          }
+        ],
+        "specialization": 55
+      },
+      "Dagger (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Stalker's Strike"
+          },
+          {
+            "slot": 5,
+            "name": "Crippling Talon"
+          }
+        ],
+        "specialization": 55
+      },
+      "Greatsword": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Slash"
+          },
+          {
+            "slot": 2,
+            "name": "Maul"
+          },
+          {
+            "slot": 3,
+            "name": "Swoop"
+          },
+          {
+            "slot": 4,
+            "name": "Counterattack"
+          },
+          {
+            "slot": 5,
+            "name": "Hilt Bash"
+          }
+        ]
+      },
+      "Hammer": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Hammer Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Wild Swing"
+          },
+          {
+            "slot": 3,
+            "name": "Overbearing Smash"
+          },
+          {
+            "slot": 4,
+            "name": "Savage Shock Wave"
+          },
+          {
+            "slot": 5,
+            "name": "Thump"
+          }
+        ],
+        "specialization": 72
+      },
+      "Longbow": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Long Range Shot"
+          },
+          {
+            "slot": 2,
+            "name": "Rapid Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Hunter's Shot"
+          },
+          {
+            "slot": 4,
+            "name": "Point-Blank Shot"
+          },
+          {
+            "slot": 5,
+            "name": "Barrage"
+          }
+        ]
+      },
+      "Mace (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Germinate"
+          },
+          {
+            "slot": 2,
+            "name": "Flourish"
+          },
+          {
+            "slot": 3,
+            "name": "Oaken Cudgel"
+          }
+        ]
+      },
+      "Mace (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Thistleguard"
+          },
+          {
+            "slot": 5,
+            "name": "Wild Strikes"
+          }
+        ]
+      },
+      "Shortbow": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Crossfire"
+          },
+          {
+            "slot": 2,
+            "name": "Poison Volley"
+          },
+          {
+            "slot": 3,
+            "name": "Quick Shot"
+          },
+          {
+            "slot": 4,
+            "name": "Crippling Shot"
+          },
+          {
+            "slot": 5,
+            "name": "Concussion Shot"
+          }
+        ]
+      },
+      "Staff": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Solar Beam"
+          },
+          {
+            "slot": 2,
+            "name": "Astral Wisp"
+          },
+          {
+            "slot": 3,
+            "name": "Ancestral Grace"
+          },
+          {
+            "slot": 4,
+            "name": "Vine Surge"
+          },
+          {
+            "slot": 5,
+            "name": "Sublime Conversion"
+          }
+        ],
+        "specialization": 5
+      },
+      "Sword": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Slash"
+          },
+          {
+            "slot": 2,
+            "name": "Pounce"
+          },
+          {
+            "slot": 3,
+            "name": "Serpent's Strike"
+          }
+        ]
+      },
+      "Torch": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Throw Torch"
+          },
+          {
+            "slot": 5,
+            "name": "Bonfire"
+          }
+        ]
+      },
+      "Warhorn": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Hunter's Call"
+          },
+          {
+            "slot": 5,
+            "name": "Call of the Wild"
+          }
+        ]
+      }
+    },
+    "thief": {
+      "Axe": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Spinning Axe"
+          },
+          {
+            "slot": 2,
+            "name": "Venomous Volley"
+          },
+          {
+            "slot": 3,
+            "name": "Orchestrated Assault",
+            "offhand": "Pistol"
+          },
+          {
+            "slot": 3,
+            "name": "Harrowing Storm",
+            "offhand": "Dagger"
+          },
+          {
+            "slot": 3,
+            "name": "Recall Axes"
+          }
+        ]
+      },
+      "Dagger (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Double Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Heartseeker"
+          },
+          {
+            "slot": 3,
+            "name": "Death Blossom",
+            "offhand": "Dagger"
+          },
+          {
+            "slot": 3,
+            "name": "Shadow Shot",
+            "offhand": "Pistol"
+          },
+          {
+            "slot": 3,
+            "name": "Twisting Fangs",
+            "offhand": "Nothing"
+          }
+        ]
+      },
+      "Dagger (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Dancing Dagger"
+          },
+          {
+            "slot": 5,
+            "name": "Cloak and Dagger"
+          }
+        ]
+      },
+      "Pistol (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Vital Shot"
+          },
+          {
+            "slot": 2,
+            "name": "Bola Shot"
+          },
+          {
+            "slot": 3,
+            "name": "Unload",
+            "offhand": "Pistol"
+          },
+          {
+            "slot": 3,
+            "name": "Shadow Strike",
+            "offhand": "Dagger"
+          },
+          {
+            "slot": 3,
+            "name": "Repeater",
+            "offhand": "Nothing"
+          }
+        ]
+      },
+      "Pistol (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Head Shot"
+          },
+          {
+            "slot": 5,
+            "name": "Black Powder"
+          }
+        ]
+      },
+      "Rifle": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Brutal Aim"
+          },
+          {
+            "slot": 2,
+            "name": "Skirmisher's Shot"
+          },
+          {
+            "slot": 3,
+            "name": "Double Tap"
+          },
+          {
+            "slot": 4,
+            "name": "Death's Retreat"
+          },
+          {
+            "slot": 5,
+            "name": "Kneel"
+          }
+        ],
+        "specialization": 58
+      },
+      "Scepter": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Shadow Bolt"
+          },
+          {
+            "slot": 2,
+            "name": "Shadow Sap"
+          },
+          {
+            "slot": 3,
+            "name": "Twilight Combo",
+            "offhand": "Dagger"
+          },
+          {
+            "slot": 3,
+            "name": "Measured Shot",
+            "offhand": "Pistol"
+          },
+          {
+            "slot": 3,
+            "name": "Triple Threat"
+          }
+        ],
+        "specialization": 71
+      },
+      "Shortbow": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Trick Shot"
+          },
+          {
+            "slot": 2,
+            "name": "Cluster Bomb"
+          },
+          {
+            "slot": 3,
+            "name": "Disabling Shot"
+          },
+          {
+            "slot": 4,
+            "name": "Choking Gas"
+          },
+          {
+            "slot": 5,
+            "name": "Infiltrator's Arrow"
+          }
+        ]
+      },
+      "Staff": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Staff Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Weakening Whirl"
+          },
+          {
+            "slot": 3,
+            "name": "Debilitating Arc"
+          },
+          {
+            "slot": 4,
+            "name": "Dust Strike"
+          },
+          {
+            "slot": 5,
+            "name": "Vault"
+          }
+        ],
+        "specialization": 7
+      },
+      "Sword": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Slice"
+          },
+          {
+            "slot": 2,
+            "name": "Infiltrator's Strike"
+          },
+          {
+            "slot": 3,
+            "name": "Flanking Strike",
+            "offhand": "Dagger"
+          },
+          {
+            "slot": 3,
+            "name": "Pistol Whip",
+            "offhand": "Pistol"
+          },
+          {
+            "slot": 3,
+            "name": "Stab",
+            "offhand": "Nothing"
+          }
+        ]
+      }
+    },
+    "elementalist": {
+      "Dagger (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Dragon's Claw",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 1,
+            "name": "Vapor Blade",
+            "attunement": "Water"
+          },
+          {
+            "slot": 1,
+            "name": "Lightning Whip",
+            "attunement": "Air"
+          },
+          {
+            "slot": 1,
+            "name": "Impale",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 2,
+            "name": "Drake's Breath",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 2,
+            "name": "Cone of Cold",
+            "attunement": "Water"
+          },
+          {
+            "slot": 2,
+            "name": "Convergence",
+            "attunement": "Air"
+          },
+          {
+            "slot": 2,
+            "name": "Ring of Earth",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Grinding Stones",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Mud Slide",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Katabatic Wind",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Ashen Blast",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Plasma Burst",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Steam Surge",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Burning Speed",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Frozen Burst",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Shocking Aura",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Earthen Rush",
+            "attunement": "Earth"
+          }
+        ]
+      },
+      "Dagger (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Frost Aura",
+            "attunement": "Water"
+          },
+          {
+            "slot": 4,
+            "name": "Ring of Fire",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 4,
+            "name": "Ride the Lightning",
+            "attunement": "Air"
+          },
+          {
+            "slot": 4,
+            "name": "Earthquake",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 5,
+            "name": "Fire Grab",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 5,
+            "name": "Cleansing Wave",
+            "attunement": "Water"
+          },
+          {
+            "slot": 5,
+            "name": "Updraft",
+            "attunement": "Air"
+          },
+          {
+            "slot": 5,
+            "name": "Churning Earth",
+            "attunement": "Earth"
+          }
+        ]
+      },
+      "Focus": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Flamewall",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 4,
+            "name": "Freezing Gust",
+            "attunement": "Water"
+          },
+          {
+            "slot": 4,
+            "name": "Swirling Winds",
+            "attunement": "Air"
+          },
+          {
+            "slot": 4,
+            "name": "Magnetic Wave",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 5,
+            "name": "Fire Shield",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 5,
+            "name": "Comet",
+            "attunement": "Water"
+          },
+          {
+            "slot": 5,
+            "name": "Gale",
+            "attunement": "Air"
+          },
+          {
+            "slot": 5,
+            "name": "Obsidian Flesh",
+            "attunement": "Earth"
+          }
+        ]
+      },
+      "Hammer": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Singeing Strike",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 1,
+            "name": "Stream Strike",
+            "attunement": "Water"
+          },
+          {
+            "slot": 1,
+            "name": "Wind Slam",
+            "attunement": "Air"
+          },
+          {
+            "slot": 1,
+            "name": "Stonestrike",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 2,
+            "name": "Surging Flames",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 2,
+            "name": "Rain of Blows",
+            "attunement": "Water"
+          },
+          {
+            "slot": 2,
+            "name": "Hurricane of Pain",
+            "attunement": "Air"
+          },
+          {
+            "slot": 2,
+            "name": "Whirling Stones",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Air and Earth",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Air and Earth",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Water and Earth",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Water and Earth",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Water and Air",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Water and Air",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Fire and Earth",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Fire and Earth",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Fire and Air",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Fire and Air",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Fire and Water",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Dual Orbits: Fire and Water",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Flame Wheel",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Icy Coil",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Crescent Wind",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Rocky Loop",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 4,
+            "name": "Triple Sear",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 4,
+            "name": "Crashing Font",
+            "attunement": "Water"
+          },
+          {
+            "slot": 4,
+            "name": "Wind Storm",
+            "attunement": "Air"
+          },
+          {
+            "slot": 4,
+            "name": "Immutable Stone",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 5,
+            "name": "Molten End",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 5,
+            "name": "Cleansing Typhoon",
+            "attunement": "Water"
+          },
+          {
+            "slot": 5,
+            "name": "Shock Blast",
+            "attunement": "Air"
+          },
+          {
+            "slot": 5,
+            "name": "Ground Pound",
+            "attunement": "Earth"
+          }
+        ],
+        "specialization": 67
+      },
+      "Pistol": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Scorching Shot",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 1,
+            "name": "Soothing Splash",
+            "attunement": "Water"
+          },
+          {
+            "slot": 1,
+            "name": "Electric Exposure",
+            "attunement": "Air"
+          },
+          {
+            "slot": 1,
+            "name": "Piercing Pebble",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 2,
+            "name": "Raging Ricochet",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 2,
+            "name": "Frigid Flurry",
+            "attunement": "Water"
+          },
+          {
+            "slot": 2,
+            "name": "Dazing Discharge",
+            "attunement": "Air"
+          },
+          {
+            "slot": 2,
+            "name": "Shattering Stone",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Frostfire Flurry",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Purblinding Plasma",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Molten Meteor",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Flowing Finesse",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Echoing Erosion",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Enervating Earth",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Searing Salvo",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Frozen Fusillade",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Aerial Agility",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Boulder Blast",
+            "attunement": "Earth"
+          }
+        ]
+      },
+      "Scepter": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Flamestrike",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 1,
+            "name": "Ice Shards",
+            "attunement": "Water"
+          },
+          {
+            "slot": 1,
+            "name": "Arc Lightning",
+            "attunement": "Air"
+          },
+          {
+            "slot": 1,
+            "name": "Stone Shards",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 2,
+            "name": "Dragon's Tooth",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 2,
+            "name": "Shatterstone",
+            "attunement": "Water"
+          },
+          {
+            "slot": 2,
+            "name": "Lightning Strike",
+            "attunement": "Air"
+          },
+          {
+            "slot": 2,
+            "name": "Rock Barrier",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Earthen Synergy",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Stone Tide",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Glacial Drift",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Fracturing Strike",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Plasma Beam",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Fiery Frost",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Phoenix",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Water Trident",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Blinding Flash",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Dust Devil",
+            "attunement": "Earth"
+          }
+        ]
+      },
+      "Staff": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Fireball",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 1,
+            "name": "Water Blast",
+            "attunement": "Water"
+          },
+          {
+            "slot": 1,
+            "name": "Chain Lightning",
+            "attunement": "Air"
+          },
+          {
+            "slot": 1,
+            "name": "Stoning",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 2,
+            "name": "Lava Font",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 2,
+            "name": "Ice Spike",
+            "attunement": "Water"
+          },
+          {
+            "slot": 2,
+            "name": "Lightning Surge",
+            "attunement": "Air"
+          },
+          {
+            "slot": 2,
+            "name": "Eruption",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Pile Driver",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Lahar",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Monsoon",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Pyroclastic Blast",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Plasma Blast",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Pressure Blast",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Flame Burst",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Geyser",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Gust",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Magnetic Aura",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 4,
+            "name": "Burning Retreat",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 4,
+            "name": "Frozen Ground",
+            "attunement": "Water"
+          },
+          {
+            "slot": 4,
+            "name": "Windborne Speed",
+            "attunement": "Air"
+          },
+          {
+            "slot": 4,
+            "name": "Unsteady Ground",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 5,
+            "name": "Meteor Shower",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 5,
+            "name": "Healing Rain",
+            "attunement": "Water"
+          },
+          {
+            "slot": 5,
+            "name": "Static Field",
+            "attunement": "Air"
+          },
+          {
+            "slot": 5,
+            "name": "Shock Wave",
+            "attunement": "Earth"
+          }
+        ]
+      },
+      "Sword": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Fire Strike",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 1,
+            "name": "Seiche",
+            "attunement": "Water"
+          },
+          {
+            "slot": 1,
+            "name": "Charged Strike",
+            "attunement": "Air"
+          },
+          {
+            "slot": 1,
+            "name": "Crystal Slash",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 2,
+            "name": "Flame Uprising",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 2,
+            "name": "Riptide",
+            "attunement": "Water"
+          },
+          {
+            "slot": 2,
+            "name": "Polaric Leap",
+            "attunement": "Air"
+          },
+          {
+            "slot": 2,
+            "name": "Earthen Vortex",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 3,
+            "name": "Twin Strike",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Pyro Vortex",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Lava Skin",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Shearing Edge",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Natural Frenzy",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Gale Strike",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Cauterizing Strike",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 3,
+            "name": "Aqua Siphon",
+            "attunement": "Water"
+          },
+          {
+            "slot": 3,
+            "name": "Quantum Strike",
+            "attunement": "Air"
+          },
+          {
+            "slot": 3,
+            "name": "Rust Frenzy",
+            "attunement": "Earth"
+          }
+        ],
+        "specialization": 56
+      },
+      "Warhorn": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Heat Sync",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 4,
+            "name": "Tidal Surge",
+            "attunement": "Water"
+          },
+          {
+            "slot": 4,
+            "name": "Cyclone",
+            "attunement": "Air"
+          },
+          {
+            "slot": 4,
+            "name": "Sand Squall",
+            "attunement": "Earth"
+          },
+          {
+            "slot": 5,
+            "name": "Wildfire",
+            "attunement": "Fire"
+          },
+          {
+            "slot": 5,
+            "name": "Water Globe",
+            "attunement": "Water"
+          },
+          {
+            "slot": 5,
+            "name": "Lightning Orb",
+            "attunement": "Air"
+          },
+          {
+            "slot": 5,
+            "name": "Dust Storm",
+            "attunement": "Earth"
+          }
+        ],
+        "specialization": 48
+      }
+    },
+    "mesmer": {
+      "Axe": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Lacerating Chop"
+          },
+          {
+            "slot": 2,
+            "name": "Lingering Thoughts"
+          },
+          {
+            "slot": 2,
+            "name": "Lingering Thoughts"
+          },
+          {
+            "slot": 2,
+            "name": "Lingering Thoughts"
+          },
+          {
+            "slot": 3,
+            "name": "Axes of Symmetry"
+          },
+          {
+            "slot": 3,
+            "name": "Axes of Symmetry"
+          },
+          {
+            "slot": 3,
+            "name": "Axes of Symmetry"
+          }
+        ],
+        "specialization": 59
+      },
+      "Dagger": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Flying Cutter"
+          },
+          {
+            "slot": 2,
+            "name": "Bladecall"
+          },
+          {
+            "slot": 2,
+            "name": "Bladecall"
+          },
+          {
+            "slot": 2,
+            "name": "Bladecall"
+          },
+          {
+            "slot": 3,
+            "name": "Unstable Bladestorm"
+          }
+        ],
+        "specialization": 66
+      },
+      "Focus": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Temporal Curtain"
+          },
+          {
+            "slot": 5,
+            "name": "Phantasmal Warden"
+          }
+        ]
+      },
+      "Greatsword": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Spatial Surge"
+          },
+          {
+            "slot": 2,
+            "name": "Mirror Blade"
+          },
+          {
+            "slot": 3,
+            "name": "Mind Stab"
+          },
+          {
+            "slot": 4,
+            "name": "Phantasmal Berserker"
+          },
+          {
+            "slot": 5,
+            "name": "Illusionary Wave"
+          }
+        ]
+      },
+      "Pistol": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Phantasmal Duelist"
+          },
+          {
+            "slot": 5,
+            "name": "Magic Bullet"
+          }
+        ]
+      },
+      "Rifle": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Friendly Fire"
+          },
+          {
+            "slot": 2,
+            "name": "Journey"
+          },
+          {
+            "slot": 3,
+            "name": "Inspiring Imagery"
+          },
+          {
+            "slot": 4,
+            "name": "Phantasmal Sharpshooter"
+          },
+          {
+            "slot": 5,
+            "name": "Singularity Shot"
+          }
+        ]
+      },
+      "Scepter": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Ether Bolt"
+          },
+          {
+            "slot": 2,
+            "name": "Illusionary Counter"
+          },
+          {
+            "slot": 3,
+            "name": "Confusing Images"
+          }
+        ]
+      },
+      "Shield": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Echo of Memory"
+          },
+          {
+            "slot": 5,
+            "name": "Tides of Time"
+          }
+        ],
+        "specialization": 40
+      },
+      "Staff": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Winds of Chaos"
+          },
+          {
+            "slot": 2,
+            "name": "Phase Retreat"
+          },
+          {
+            "slot": 3,
+            "name": "Phantasmal Warlock"
+          },
+          {
+            "slot": 4,
+            "name": "Chaos Armor"
+          },
+          {
+            "slot": 5,
+            "name": "Chaos Storm"
+          }
+        ]
+      },
+      "Sword (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 2,
+            "name": "Blurred Frenzy"
+          },
+          {
+            "slot": 3,
+            "name": "Blade Leap"
+          },
+          {
+            "slot": 3,
+            "name": "Blade Leap"
+          },
+          {
+            "slot": 3,
+            "name": "Illusionary Leap"
+          },
+          {
+            "slot": 1,
+            "name": "Mind Slash"
+          }
+        ]
+      },
+      "Sword (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Illusionary Riposte"
+          },
+          {
+            "slot": 5,
+            "name": "Phantasmal Swordsman"
+          }
+        ]
+      },
+      "Torch": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "The Prestige"
+          },
+          {
+            "slot": 5,
+            "name": "Phantasmal Mage"
+          }
+        ]
+      }
+    },
+    "necromancer": {
+      "Axe": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Rending Claws"
+          },
+          {
+            "slot": 2,
+            "name": "Ghastly Claws"
+          },
+          {
+            "slot": 3,
+            "name": "Unholy Feast"
+          }
+        ]
+      },
+      "Dagger (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Necrotic Slash"
+          },
+          {
+            "slot": 2,
+            "name": "Life Siphon"
+          },
+          {
+            "slot": 3,
+            "name": "Dark Pact"
+          }
+        ]
+      },
+      "Dagger (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Deathly Swarm"
+          },
+          {
+            "slot": 5,
+            "name": "Enfeebling Blood"
+          }
+        ]
+      },
+      "Focus": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Soul Grasp"
+          },
+          {
+            "slot": 5,
+            "name": "Spinal Shivers"
+          }
+        ]
+      },
+      "Greatsword": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Dusk Strike"
+          },
+          {
+            "slot": 2,
+            "name": "Gravedigger"
+          },
+          {
+            "slot": 3,
+            "name": "Death Spiral"
+          },
+          {
+            "slot": 4,
+            "name": "Nightfall"
+          },
+          {
+            "slot": 5,
+            "name": "Grasping Darkness"
+          }
+        ],
+        "specialization": 34
+      },
+      "Pistol": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Vicious Shot"
+          },
+          {
+            "slot": 2,
+            "name": "Weeping Shots"
+          },
+          {
+            "slot": 3,
+            "name": "Vile Blast"
+          }
+        ],
+        "specialization": 64
+      },
+      "Scepter": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Blood Curse"
+          },
+          {
+            "slot": 2,
+            "name": "Grasping Dead"
+          },
+          {
+            "slot": 3,
+            "name": "Feast of Corruption"
+          }
+        ]
+      },
+      "Staff": {
+        "type": "twohand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Necrotic Grasp"
+          },
+          {
+            "slot": 2,
+            "name": "Mark of Blood"
+          },
+          {
+            "slot": 3,
+            "name": "Chillblains"
+          },
+          {
+            "slot": 4,
+            "name": "Putrid Mark"
+          },
+          {
+            "slot": 5,
+            "name": "Reaper's Mark"
+          }
+        ]
+      },
+      "Sword (mainhand)": {
+        "type": "mainhand",
+        "skills": [
+          {
+            "slot": 1,
+            "name": "Enervation Blade"
+          },
+          {
+            "slot": 2,
+            "name": "Ravenous Wave"
+          },
+          {
+            "slot": 3,
+            "name": "Path of Gluttony"
+          }
+        ]
+      },
+      "Sword (offhand)": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Hungering Maelstrom"
+          },
+          {
+            "slot": 5,
+            "name": "Devouring Visage"
+          }
+        ]
+      },
+      "Torch": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Harrowing Wave"
+          },
+          {
+            "slot": 5,
+            "name": "Oppressive Collapse"
+          }
+        ],
+        "specialization": 60
+      },
+      "Warhorn": {
+        "type": "offhand",
+        "skills": [
+          {
+            "slot": 4,
+            "name": "Wail of Doom"
+          },
+          {
+            "slot": 5,
+            "name": "Locust Swarm"
+          }
+        ]
+      }
+    }
+  }
+}

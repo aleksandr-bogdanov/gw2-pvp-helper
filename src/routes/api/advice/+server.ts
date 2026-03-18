@@ -1,0 +1,278 @@
+import type { RequestHandler } from '@sveltejs/kit';
+import { anthropic } from '$lib/server/anthropic.js';
+import { db } from '$lib/server/db/index.js';
+import { userProfiles } from '$lib/server/db/schema.js';
+import { eq } from 'drizzle-orm';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import type { PlayerInfo, MapInfo, ProfileMatchups } from '$lib/types.js';
+
+// --- Normalize matchups from DB (handles old {threat_level, notes} and new {threat, tip} formats) ---
+
+function normalizeMatchups(raw: unknown): ProfileMatchups | null {
+	if (!raw || typeof raw !== 'object') return null;
+	// Old format may nest under a "matchups" key
+	const data = ('matchups' in (raw as Record<string, unknown>))
+		? (raw as Record<string, unknown>).matchups as Record<string, unknown>
+		: raw as Record<string, unknown>;
+	if (!data || typeof data !== 'object') return null;
+
+	const result: ProfileMatchups = {};
+	for (const [key, val] of Object.entries(data)) {
+		if (typeof val === 'string') {
+			// Old format: "RESPECT — some tip text"
+			const match = val.match(/^(HUNT|RESPECT|AVOID)\s*[—–-]\s*(.*)/i);
+			if (match) {
+				result[key.toLowerCase()] = { threat: match[1].toUpperCase() as 'HUNT' | 'RESPECT' | 'AVOID', tip: match[2].trim() };
+			}
+		} else if (val && typeof val === 'object') {
+			const threat = ((val as any).threat ?? (val as any).threat_level ?? '').toUpperCase();
+			const tip = (val as any).tip ?? (val as any).notes ?? '';
+			if (threat) {
+				result[key.toLowerCase()] = { threat: threat as 'HUNT' | 'RESPECT' | 'AVOID', tip };
+			}
+		}
+	}
+	return Object.keys(result).length > 0 ? result : null;
+}
+
+// --- Data loading (cached at module level) ---
+
+function loadDataFile(filename: string): string {
+	return readFileSync(resolve('data', filename), 'utf-8');
+}
+
+interface MetaProfile {
+	spec_id: string;
+	profession_id: string;
+	label: string;
+	meta_role: string;
+	kill_window: string;
+	key_threats: string[];
+	dont_hit: { skill: string; response: string }[];
+	notes: string;
+}
+
+const metaProfiles: Record<string, MetaProfile> = JSON.parse(
+	readFileSync(resolve('data', 'meta-profiles.json'), 'utf-8')
+);
+
+// --- Meta profile lookup ---
+
+function lookupMetaProfile(specId: string, role: string): MetaProfile | null {
+	// Try variant key first (e.g. "firebrand_heal"), then bare spec_id
+	return metaProfiles[`${specId}_${role}`] ?? metaProfiles[specId] ?? null;
+}
+
+// --- Dynamic context assembly ---
+
+function buildMatchContext(
+	enemyTeam: PlayerInfo[],
+	myTeam: PlayerInfo[],
+	matchups: ProfileMatchups | null
+): string {
+	const sections: string[] = [];
+
+	// Inject meta profiles for all 10 players in the match
+	const seen = new Set<string>();
+	const allPlayers = [...enemyTeam, ...myTeam];
+	const profileLines: string[] = [];
+
+	for (const player of allPlayers) {
+		const profile = lookupMetaProfile(player.spec_id, player.role);
+		if (!profile) continue;
+
+		// Deduplicate by label (e.g. two Reapers only get one profile block)
+		if (seen.has(profile.label)) continue;
+		seen.add(profile.label);
+
+		let line = `**${profile.label}** (${profile.meta_role}): ${profile.notes}`;
+		if (profile.kill_window) {
+			line += ` Window: ${profile.kill_window}.`;
+		}
+		for (const dh of profile.dont_hit) {
+			line += ` DON'T HIT: ${dh.skill} — ${dh.response}.`;
+		}
+		profileLines.push(line);
+	}
+
+	if (profileLines.length > 0) {
+		sections.push(
+			'## MATCH-SPECIFIC BUILD PROFILES\n\n' + profileLines.join('\n\n')
+		);
+	}
+
+	// Inject per-enemy matchup assessments from the player's profile
+	if (matchups) {
+		const matchupLines: string[] = [];
+		for (const enemy of enemyTeam) {
+			const assessment = matchups[enemy.spec_id];
+			if (assessment) {
+				matchupLines.push(
+					`- **${enemy.character_name}** (${enemy.spec_id}): **${assessment.threat}** — ${assessment.tip}`
+				);
+			}
+		}
+		if (matchupLines.length > 0) {
+			sections.push(
+				'## YOUR MATCHUP ASSESSMENTS\n\nThese are YOUR build-specific threat ratings for each enemy. Use these as the default threat level in the PER-ENEMY BREAKDOWN unless you have a strong reason to override.\n\n' +
+					matchupLines.join('\n')
+			);
+		}
+	}
+
+	return sections.length > 0 ? '\n\n' + sections.join('\n\n') : '';
+}
+
+// --- Prompt assembly ---
+
+function buildSystemPrompt(
+	profilePrompt: string | null,
+	role: string,
+	enemyTeam: PlayerInfo[],
+	myTeam: PlayerInfo[],
+	matchups: ProfileMatchups | null
+): string {
+	// Layer 1: Universal game knowledge (slim — no meta profiles)
+	const layer1 = loadDataFile('universal-game-knowledge.md');
+
+	// Dynamic: match-specific profiles + matchup assessments
+	const matchContext = buildMatchContext(enemyTeam, myTeam, matchups);
+
+	// Layer 2: Active character profile (from DB)
+	const layer2 = profilePrompt
+		? `\n\nTHE PLAYER'S BUILD:\n${profilePrompt}`
+		: '';
+
+	// Layer 3: Output format (based on role)
+	const isSupport =
+		role === 'support' || role === 'heal' || role === 'supp' || role === 'alac';
+	const layer3 = isSupport
+		? loadDataFile('output-format-support.md')
+		: loadDataFile('output-format-dps.md');
+
+	return `You are a GW2 PvP tactical advisor.\n\n${layer1}${matchContext}${layer2}\n\n${layer3}`;
+}
+
+function buildUserPrompt(
+	myTeam: PlayerInfo[],
+	enemyTeam: PlayerInfo[],
+	map: MapInfo | null,
+	buildLabel: string | null,
+	role: string
+): string {
+	const formatTeam = (team: PlayerInfo[]) =>
+		team
+			.map(
+				(p, i) =>
+					`${i + 1}. ${p.character_name} — ${p.spec_id} (${p.profession_id}) — ${p.role}${p.is_user ? ' ← ME' : ''}`
+			)
+			.join('\n');
+
+	const mapLine = map
+		? `Map: ${map.name} (${map.mode}) — ${map.mechanic}`
+		: 'Map: Unknown';
+
+	return `CHARACTER: ${buildLabel || 'Unknown'}
+ROLE: ${role}
+${mapLine}
+
+ENEMY TEAM (these are the opponents — your kill targets):
+${formatTeam(enemyTeam)}
+
+MY TEAM (these are your allies — do NOT list them as kill targets):
+${formatTeam(myTeam)}
+
+Follow the output format from your system prompt EXACTLY. Sections must appear in the specified order. 2-3 lines per enemy MAX — cheat card, not essay.
+REMINDER: Focus order must contain ONLY enemies. Per-enemy sections must each be self-contained — no shared notes between enemy blocks.`;
+}
+
+// --- Handler ---
+
+export const POST: RequestHandler = async ({ request }) => {
+	const { myTeam, enemyTeam, map, profileId } = await request.json();
+
+	// Load active profile (by explicit ID or find the active one)
+	let profile: {
+		profilePrompt: string | null;
+		buildLabel: string | null;
+		role: string;
+		matchups: unknown;
+	} | null = null;
+
+	if (profileId) {
+		const [found] = await db
+			.select()
+			.from(userProfiles)
+			.where(eq(userProfiles.id, profileId));
+		if (found) profile = found;
+	} else {
+		const [active] = await db
+			.select()
+			.from(userProfiles)
+			.where(eq(userProfiles.isActive, true));
+		if (active) profile = active;
+	}
+
+	const profilePrompt = profile?.profilePrompt ?? null;
+	const buildLabel = profile?.buildLabel ?? null;
+	const role = profile?.role ?? 'dps';
+	const matchups = normalizeMatchups(profile?.matchups) ?? null;
+
+	const systemPrompt = buildSystemPrompt(
+		profilePrompt,
+		role,
+		enemyTeam,
+		myTeam,
+		matchups
+	);
+	const userMessage = buildUserPrompt(myTeam, enemyTeam, map, buildLabel, role);
+
+	const stream = await anthropic.messages.stream({
+		model: 'claude-sonnet-4-6',
+		max_tokens: 1500,
+		system: systemPrompt,
+		messages: [{ role: 'user', content: userMessage }]
+	});
+
+	const encoder = new TextEncoder();
+
+	return new Response(
+		new ReadableStream({
+			async start(controller) {
+				try {
+					for await (const event of stream) {
+						if (
+							event.type === 'content_block_delta' &&
+							event.delta.type === 'text_delta'
+						) {
+							controller.enqueue(
+								encoder.encode(
+									`data: ${JSON.stringify({ text: event.delta.text })}\n\n`
+								)
+							);
+						}
+					}
+					controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+				} catch (err) {
+					const message =
+						err instanceof Error ? err.message : 'Stream error';
+					controller.enqueue(
+						encoder.encode(
+							`data: ${JSON.stringify({ error: message })}\n\n`
+						)
+					);
+				} finally {
+					controller.close();
+				}
+			}
+		}),
+		{
+			headers: {
+				'Content-Type': 'text/event-stream',
+				'Cache-Control': 'no-cache',
+				Connection: 'keep-alive'
+			}
+		}
+	);
+};

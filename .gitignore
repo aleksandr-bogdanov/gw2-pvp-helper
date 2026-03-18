@@ -1,12 +1,29 @@
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.venv/
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
 .env
-*.egg-info/
-dist/
-build/
-.pytest_cache/
-db/players.db
-.ruff_cache/
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# User data
+static/screenshots/
+
+# PAI work tracking
+MEMORY/WORK/

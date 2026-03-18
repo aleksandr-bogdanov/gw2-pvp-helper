@@ -1,25 +1,74 @@
-default:
-    @just --list
+# GW2 PvP Helper
 
-# Start the dev server
+# Start dev server (accessible on local network)
 dev:
-    uv run uvicorn app:app --reload --host 0.0.0.0 --port 5000
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Ensure Docker is running
+    if ! docker info > /dev/null 2>&1; then
+        echo "ERROR: Docker is not running. Start Docker Desktop first."
+        exit 1
+    fi
+    # Ensure Postgres container is up
+    if ! docker compose ps --status running | grep -q postgres; then
+        echo "Starting Postgres..."
+        docker compose up -d
+        sleep 2
+        echo "Pushing schema..."
+        npx drizzle-kit push
+    fi
+    npm run dev -- --host
 
-# Scrape MetaBattle for current builds
-scrape:
-    uv run python -m scraper.metabattle
+# Start Postgres
+db:
+    docker compose up -d
 
-# Enrich scraped builds with counter strategies
-enrich:
-    uv run python -m scraper.enrich
+# Stop Postgres
+db-stop:
+    docker compose down
 
-# Run tests
-test:
-    uv run pytest tests/ -v
+# Generate Drizzle migration
+db-generate:
+    npx drizzle-kit generate
 
-# Initialize the database
-init-db:
-    uv run python -c "import asyncio; from db.database import init_db; asyncio.run(init_db())"
+# Push schema to database
+db-push:
+    npx drizzle-kit push
 
-# Scrape and enrich in one step
-update: scrape enrich
+# Open Drizzle Studio
+db-studio:
+    npx drizzle-kit studio
+
+# Type check
+check:
+    npm run check
+
+# Build for production
+build:
+    npm run build
+
+# Preview production build
+preview:
+    npm run preview
+
+# Install dependencies
+install:
+    npm install
+
+# Start everything (db + dev)
+up: db dev
+
+# Reset database (recreate container)
+db-reset:
+    docker compose down -v
+    docker compose up -d
+    sleep 2
+    npx drizzle-kit push
+
+# Run scan accuracy tests against real screenshots
+test-scan *ARGS:
+    npx tsx tests/scan-accuracy.ts {{ARGS}}
+
+# Save a screenshot as test fixture
+save-fixture NAME PATH:
+    npx tsx tests/save-fixture.ts {{NAME}} {{PATH}}

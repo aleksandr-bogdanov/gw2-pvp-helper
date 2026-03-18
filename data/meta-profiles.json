@@ -1,0 +1,472 @@
+{
+  "willbender": {
+    "spec_id": "willbender",
+    "profession_id": "guardian",
+    "label": "Willbender (Radiant Swordbender)",
+    "meta_role": "roamer/duelist",
+    "kill_window": "After Aegis consumed + movement skills on CD",
+    "key_threats": ["Heaven's Palm → Rushing Justice → Flash Combo"],
+    "dont_hit": [
+      { "skill": "Aegis", "response": "Pop with throwaway hit before committing burst" },
+      { "skill": "Renewed Focus", "response": "Count to 3, burst immediately. Rooted." }
+    ],
+    "notes": "Mobile melee burst. Very fast for a guardian. Saves with Aegis, Renewed Focus, Flowing Resolve (moving heal)."
+  },
+  "firebrand_heal": {
+    "spec_id": "firebrand",
+    "profession_id": "guardian",
+    "label": "Firebrand (Heal)",
+    "meta_role": "support",
+    "kill_window": "Don't focus them — kill their DPS first",
+    "key_threats": ["Aegis pulses", "Stability from tomes"],
+    "dont_hit": [
+      { "skill": "Aegis", "response": "Pop with throwaway hit before committing burst" },
+      { "skill": "Renewed Focus", "response": "Count to 3, burst immediately. Rooted." }
+    ],
+    "notes": "Heals, aegis pulses, stability, tomes. Strip Aegis from anyone near them before engaging."
+  },
+  "firebrand_dps": {
+    "spec_id": "firebrand",
+    "profession_id": "guardian",
+    "label": "Firebrand (DPS)",
+    "meta_role": "teamfighter",
+    "kill_window": "Squishy without support tomes — valid kill target",
+    "key_threats": ["Tome burst damage"],
+    "dont_hit": [
+      { "skill": "Aegis", "response": "Pop with throwaway hit before committing burst" },
+      { "skill": "Renewed Focus", "response": "Count to 3, burst immediately. Rooted." }
+    ],
+    "notes": "Tome burst damage. Squishy without support tomes. Valid kill target."
+  },
+  "luminary": {
+    "spec_id": "luminary",
+    "profession_id": "guardian",
+    "label": "Luminary (Radiant GS)",
+    "meta_role": "teamfighter/roamer",
+    "kill_window": "After Aegis + Renewed Focus used",
+    "key_threats": ["Binding Blade tether → pull → Whirling Wrath"],
+    "dont_hit": [
+      { "skill": "Aegis", "response": "Pop with throwaway hit before committing burst" },
+      { "skill": "Renewed Focus", "response": "Count to 3, burst immediately. Rooted." }
+    ],
+    "notes": "Greatsword with radiant effects. GS pull combo is deadly. Symbols on ground buff them and damage you."
+  },
+  "dragonhunter": {
+    "spec_id": "dragonhunter",
+    "profession_id": "guardian",
+    "label": "Dragonhunter",
+    "meta_role": "dps",
+    "kill_window": "Between trap cooldowns",
+    "key_threats": ["Longbow traps (blue circles on ground)"],
+    "dont_hit": [
+      { "skill": "Aegis", "response": "Pop with throwaway hit before committing burst" },
+      { "skill": "Renewed Focus", "response": "Count to 3, burst immediately. Rooted." }
+    ],
+    "notes": "Longbow traps. Telegraphed but high damage. Dodge the traps (blue circles on ground)."
+  },
+  "conduit_condi": {
+    "spec_id": "conduit",
+    "profession_id": "revenant",
+    "label": "Conduit (Condi Mallyx)",
+    "meta_role": "duelist/teamfighter",
+    "kill_window": "During legend swap (brief vulnerability)",
+    "key_threats": ["Torment stacks (damages on move AND stand still)"],
+    "dont_hit": [],
+    "notes": "Torment stacks punish both movement and standing still. Don't stay in melee long. Strip Resistance with boon strip. Better as +1 than 1v1."
+  },
+  "conduit_pwr": {
+    "spec_id": "conduit",
+    "profession_id": "revenant",
+    "label": "Conduit (Power Shiro)",
+    "meta_role": "roamer/+1",
+    "kill_window": "After Jade Wind on CD + Impossible Odds energy drained",
+    "key_threats": ["Jade Wind (AoE stun)"],
+    "dont_hit": [],
+    "notes": "Fast, aggressive. Dodge Jade Wind (AoE stun). Save stunbreak for Jade Wind. Steal interrupts Impossible Odds. Outrotate, don't force 1v1."
+  },
+  "herald": {
+    "spec_id": "herald",
+    "profession_id": "revenant",
+    "label": "Herald",
+    "meta_role": "dps/support",
+    "kill_window": "After facet boons consumed",
+    "key_threats": ["Facet boons (might, protection, etc.)"],
+    "dont_hit": [],
+    "notes": "Facet boons (might, protection, etc.). Boon-heavy — strip before engaging anyone near them."
+  },
+  "renegade": {
+    "spec_id": "renegade",
+    "profession_id": "revenant",
+    "label": "Renegade (Bunker)",
+    "meta_role": "bunker",
+    "kill_window": "Don't 1v1 — decap and leave",
+    "key_threats": ["Kalla summons on ground", "Staff 5 block + knockback"],
+    "dont_hit": [],
+    "notes": "Point holder. Kalla summons on ground. Staff 5 block + knockback. Don't 1v1 — decap and leave."
+  },
+  "paragon_dps": {
+    "spec_id": "paragon",
+    "profession_id": "warrior",
+    "label": "Paragon (DPS Spear)",
+    "meta_role": "teamfighter",
+    "kill_window": "Between chant activations when motivation is low",
+    "key_threats": ["Spear burst + chant might stacking", "Golden wings = max motivation = max danger"],
+    "dont_hit": [
+      { "skill": "Defiant Stance", "response": "Stop attacking. Wait 3-4 seconds. Resume when glow fades." },
+      { "skill": "Endure Pain", "response": "Apply conditions if possible, otherwise wait it out." }
+    ],
+    "notes": "Spear burst + chant might stacking. Golden wings = max motivation = max danger. Steal interrupts chant activation. Better as +1. Tanky (heavy armor + warrior HP)."
+  },
+  "paragon_supp": {
+    "spec_id": "paragon",
+    "profession_id": "warrior",
+    "label": "Paragon (Staff Support)",
+    "meta_role": "support",
+    "kill_window": "Don't focus them — kill whoever is away from them",
+    "key_threats": ["Battle Standard (elite) = ranged rez/stomp"],
+    "dont_hit": [
+      { "skill": "Defiant Stance", "response": "Stop attacking. Wait 3-4 seconds. Resume when glow fades." },
+      { "skill": "Endure Pain", "response": "Apply conditions if possible, otherwise wait it out." }
+    ],
+    "notes": "Staff heals + chant pulses. Glued to DPS player. Don't focus them — kill whoever is away from them. Battle Standard (elite) = ranged rez/stomp, disengage if banner drops."
+  },
+  "berserker_condi": {
+    "spec_id": "berserker",
+    "profession_id": "warrior",
+    "label": "Berserker (Condi)",
+    "meta_role": "duelist",
+    "kill_window": "After Endure Pain expires",
+    "key_threats": ["Torch burning", "Berserk mode Primal Bursts"],
+    "dont_hit": [
+      { "skill": "Defiant Stance", "response": "Stop attacking. Wait 3-4 seconds. They heal from your damage." },
+      { "skill": "Endure Pain", "response": "Apply conditions if possible, otherwise wait it out." }
+    ],
+    "notes": "Torch burning, berserk mode Primal Bursts. After Endure Pain expires = burst window."
+  },
+  "berserker_pwr": {
+    "spec_id": "berserker",
+    "profession_id": "warrior",
+    "label": "Berserker (Power)",
+    "meta_role": "teamfighter",
+    "kill_window": "After Headbutt stun + burst skills on CD",
+    "key_threats": ["Headbutt stun → burst combo"],
+    "dont_hit": [
+      { "skill": "Defiant Stance", "response": "Stop attacking. Wait 3-4 seconds. Resume when glow fades." },
+      { "skill": "Endure Pain", "response": "Apply conditions if possible, otherwise wait it out." }
+    ],
+    "notes": "Short burst trades. Headbutt stun → burst. Don't extend fights."
+  },
+  "spellbreaker": {
+    "spec_id": "spellbreaker",
+    "profession_id": "warrior",
+    "label": "Spellbreaker",
+    "meta_role": "dps/duelist",
+    "kill_window": "After Full Counter is spent + boon strip on CD",
+    "key_threats": ["Full Counter (blocks then dazes)", "Has boon strip"],
+    "dont_hit": [
+      { "skill": "Full Counter", "response": "Bait with auto attack. Do NOT commit burst skills into it." },
+      { "skill": "Defiant Stance", "response": "Stop attacking. Wait 3-4 seconds. Resume when glow fades." },
+      { "skill": "Endure Pain", "response": "Apply conditions if possible, otherwise wait it out." }
+    ],
+    "notes": "Full Counter blocks then dazes. Bait Full Counter with auto, don't commit. Has boon strip of their own."
+  },
+  "holosmith": {
+    "spec_id": "holosmith",
+    "profession_id": "engineer",
+    "label": "Holosmith",
+    "meta_role": "duelist/teamfighter",
+    "kill_window": "After Photon Forge mode ends (weak outside forge)",
+    "key_threats": ["Photon Forge mode (glowing orange = danger)"],
+    "dont_hit": [
+      { "skill": "Magnetic Shield (Shield 4)", "response": "Do not use ranged attacks. Melee or wait." }
+    ],
+    "notes": "Massive burst in Photon Forge, weak outside it. Shield 4 reflects projectiles. Disengage during forge, re-engage after. Emergency Elixir passive heal at 25%."
+  },
+  "scrapper_supp": {
+    "spec_id": "scrapper",
+    "profession_id": "engineer",
+    "label": "Scrapper (Support)",
+    "meta_role": "support",
+    "kill_window": "Low kill priority — decap and rotate",
+    "key_threats": ["Gyro heals"],
+    "dont_hit": [],
+    "notes": "Tanky, gyro heals. Low kill priority. Decap and rotate."
+  },
+  "scrapper_dps": {
+    "spec_id": "scrapper",
+    "profession_id": "engineer",
+    "label": "Scrapper (DPS)",
+    "meta_role": "teamfighter",
+    "kill_window": "Between hammer CC chain cooldowns",
+    "key_threats": ["Hammer CC chains"],
+    "dont_hit": [],
+    "notes": "Hammer CC chains. Dodge the big swings."
+  },
+  "mechanist": {
+    "spec_id": "mechanist",
+    "profession_id": "engineer",
+    "label": "Mechanist (Alac)",
+    "meta_role": "support",
+    "kill_window": "Focus the player, not the mech",
+    "key_threats": ["Mech pet pressure"],
+    "dont_hit": [],
+    "notes": "Annoying mech pet. Focus the player, not the mech."
+  },
+  "amalgam": {
+    "spec_id": "amalgam",
+    "profession_id": "engineer",
+    "label": "Amalgam (Condi Spear)",
+    "meta_role": "dps",
+    "kill_window": "Gap close when possible",
+    "key_threats": ["Ranged condition pressure"],
+    "dont_hit": [],
+    "notes": "Newer spec. Ranged condition pressure. Gap close when possible."
+  },
+  "soulbeast_pwr": {
+    "spec_id": "soulbeast",
+    "profession_id": "ranger",
+    "label": "Soulbeast (Power/Stancebeast)",
+    "meta_role": "duelist",
+    "kill_window": "Between big skills (Maul, Worldly Impact on CD)",
+    "key_threats": ["Greatsword Maul (big overhead)", "Worldly Impact leap"],
+    "dont_hit": [],
+    "notes": "Merged with pet (no visible pet). Greatsword Maul = big overhead, dodge it. Worldly Impact leap = dodge. Between big skills = your window."
+  },
+  "soulbeast_condi": {
+    "spec_id": "soulbeast",
+    "profession_id": "ranger",
+    "label": "Soulbeast (Condi/Poisonbeast)",
+    "meta_role": "duelist",
+    "kill_window": "After One Wolf Pack expires — medium armor, killable with burst",
+    "key_threats": ["One Wolf Pack (all strikes double-hit)"],
+    "dont_hit": [],
+    "notes": "Merged, condi pressure. One Wolf Pack = all strikes double-hit — dodge during their burst. Medium armor, killable with burst."
+  },
+  "galeshot": {
+    "spec_id": "galeshot",
+    "profession_id": "ranger",
+    "label": "Galeshot",
+    "meta_role": "roamer/dps",
+    "kill_window": "After pet swap cooldown spent",
+    "key_threats": ["Pet + ranged pressure", "Point Blank Shot (knockback)"],
+    "dont_hit": [],
+    "notes": "Wind-themed. Pet + ranged pressure. Gap close aggressively — longbow rangers hate melee. Dodge Point Blank Shot (knockback)."
+  },
+  "druid": {
+    "spec_id": "druid",
+    "profession_id": "ranger",
+    "label": "Druid",
+    "meta_role": "support/cc",
+    "kill_window": "After Celestial Avatar ends",
+    "key_threats": ["CC chains from pet + nature skills"],
+    "dont_hit": [],
+    "notes": "Celestial Avatar = healing mode. Wait for CA to end, then burst. CC chains from pet + nature skills. Save stunbreaks."
+  },
+  "daredevil": {
+    "spec_id": "daredevil",
+    "profession_id": "thief",
+    "label": "Daredevil",
+    "meta_role": "roamer",
+    "kill_window": "After dodge endurance depleted + Flanking Strike evade spent",
+    "key_threats": ["Flanking Strike evade frame"],
+    "dont_hit": [],
+    "notes": "S/D or D/P. Fast rotation, +1 specialist. Flanking Strike evade frame. Mirror matchup = skill diff."
+  },
+  "specter_supp": {
+    "spec_id": "specter",
+    "profession_id": "thief",
+    "label": "Specter (Support)",
+    "meta_role": "support",
+    "kill_window": "Don't chase — they sustain through Shadow Shroud",
+    "key_threats": ["Shadow Shroud heals allies", "Scepter tether"],
+    "dont_hit": [],
+    "notes": "Shadow Shroud heals allies. Scepter tether. Don't chase — they sustain through Shadow Shroud."
+  },
+  "specter_dps": {
+    "spec_id": "specter",
+    "profession_id": "thief",
+    "label": "Specter (DPS)",
+    "meta_role": "dps",
+    "kill_window": "Between scepter condition rotations",
+    "key_threats": ["Condition pressure via scepter"],
+    "dont_hit": [],
+    "notes": "Condition pressure via scepter."
+  },
+  "deadeye": {
+    "spec_id": "deadeye",
+    "profession_id": "thief",
+    "label": "Deadeye",
+    "meta_role": "dps",
+    "kill_window": "Close distance aggressively when in kneel mode (rooted)",
+    "key_threats": ["Deadeye's Mark (bonus damage on marked target)", "Kneel mode high damage"],
+    "dont_hit": [],
+    "notes": "Rifle sniper or pistol/dagger. Kneel mode = high damage but rooted — close distance aggressively to punish. Deadeye's Mark: they mark a target, gaining bonus damage on all attacks against that player. If you get marked, you know you're their focus. Shadowstep (or any teleport) beyond 1500 range breaks the mark. Watch for the mark icon on your bar."
+  },
+  "antiquary": {
+    "spec_id": "antiquary",
+    "profession_id": "thief",
+    "label": "Antiquary",
+    "meta_role": "dps",
+    "kill_window": "Unknown — newer spec",
+    "key_threats": [],
+    "dont_hit": [],
+    "notes": "Newer spec. Treat cautiously until patterns learned."
+  },
+  "evoker": {
+    "spec_id": "evoker",
+    "profession_id": "elementalist",
+    "label": "Evoker (Condi D/D Toad)",
+    "meta_role": "duelist/roamer",
+    "kill_window": "After Hare's Agility blur expires + NOT in Earth attunement",
+    "key_threats": ["Toad F5 daze (no animation, instant)", "Incidental AoE hits through stealth and evades"],
+    "dont_hit": [
+      { "skill": "Hare's Agility / blur", "response": "Disengage entirely. Re-engage after ~5 seconds. They can still cast while invulnerable." },
+      { "skill": "Stone Heart", "response": "STOP ATTACKING in Earth attunement. Wait for them to swap attunements, THEN burst." },
+      { "skill": "Obsidian Flesh", "response": "Invulnerable but rooted. Reposition for advantage, wait 4 seconds." },
+      { "skill": "Arcane Shield (double charges)", "response": "Pop both charges with throwaway hits before committing burst." }
+    ],
+    "notes": "Melee condi. Toad F5 daze (no animation, instant). Double Arcane Shield charges."
+  },
+  "tempest_heal": {
+    "spec_id": "tempest",
+    "profession_id": "elementalist",
+    "label": "Tempest (Aurashare Support)",
+    "meta_role": "support",
+    "kill_window": "Don't focus — isolate their DPS instead",
+    "key_threats": ["Overload Water (big AoE heal)", "Shocking Aura on nearby allies"],
+    "dont_hit": [
+      { "skill": "Shocking Aura", "response": "Avoid melee contact with aura-buffed targets. Strip the aura or wait ~4 seconds." }
+    ],
+    "notes": "Staff AoE heals + aura sharing. Shocking Aura = YOU get stunned for hitting aura-buffed targets. Overload Water = big AoE heal. Don't focus, isolate their DPS instead."
+  },
+  "tempest_dps": {
+    "spec_id": "tempest",
+    "profession_id": "elementalist",
+    "label": "Tempest (DPS)",
+    "meta_role": "teamfighter",
+    "kill_window": "Between overload cooldowns",
+    "key_threats": ["Overload damage"],
+    "dont_hit": [],
+    "notes": "Overload damage. Squishier without support build sustain."
+  },
+  "catalyst": {
+    "spec_id": "catalyst",
+    "profession_id": "elementalist",
+    "label": "Catalyst",
+    "meta_role": "dps",
+    "kill_window": "Between Jade Sphere cooldowns",
+    "key_threats": ["Jade Sphere AoE", "Hammer combos"],
+    "dont_hit": [],
+    "notes": "Jade Sphere AoE. Hammer combos."
+  },
+  "weaver": {
+    "spec_id": "weaver",
+    "profession_id": "elementalist",
+    "label": "Weaver",
+    "meta_role": "dps",
+    "kill_window": "Priority kill target when caught — very squishy",
+    "key_threats": ["Dual-attunement combos (very high damage)"],
+    "dont_hit": [],
+    "notes": "Dual-attunement combos. Very squishy, very high damage. Priority kill target when caught."
+  },
+  "virtuoso": {
+    "spec_id": "virtuoso",
+    "profession_id": "mesmer",
+    "label": "Virtuoso",
+    "meta_role": "dps",
+    "kill_window": "After blade burst (all blades spent)",
+    "key_threats": ["Blade burst (all blades thrown at once)"],
+    "dont_hit": [
+      { "skill": "Distortion", "response": "Wait ~1 second, then burst. Very short duration." }
+    ],
+    "notes": "Psychic blades (NO clones). Blade burst = all blades thrown at once. Kill target when blades are spent."
+  },
+  "mirage": {
+    "spec_id": "mirage",
+    "profession_id": "mesmer",
+    "label": "Mirage",
+    "meta_role": "duelist",
+    "kill_window": "Between ambush attack cooldowns",
+    "key_threats": ["Ambush attacks from dodge (afterimage)", "Confusion stacks"],
+    "dont_hit": [
+      { "skill": "Distortion", "response": "Wait ~1 second, then burst. Very short duration." }
+    ],
+    "notes": "Dodge creates ambush attacks (afterimage). Dodge doesn't move them — they're still where they were. Confusion stacks = slow down YOUR skill usage. Consume Plasma from Steal = best stolen skill."
+  },
+  "chronomancer": {
+    "spec_id": "chronomancer",
+    "profession_id": "mesmer",
+    "label": "Chronomancer",
+    "meta_role": "dps/support",
+    "kill_window": "After shatter (no clones left) = weakest moment",
+    "key_threats": ["Continuum Split (time-rewind)", "Shatters need clones"],
+    "dont_hit": [
+      { "skill": "Distortion", "response": "Wait ~1 second, then burst. Very short duration." }
+    ],
+    "notes": "Shatters need clones. After shatter = weakest moment (no clones). Continuum Split = time-rewind, interrupt with Steal. Distortion (F4) = brief invuln."
+  },
+  "troubadour": {
+    "spec_id": "troubadour",
+    "profession_id": "mesmer",
+    "label": "Troubadour (Support)",
+    "meta_role": "support",
+    "kill_window": "Don't chase — slippery (Blink, Distortion, clones)",
+    "key_threats": ["Bardic heals"],
+    "dont_hit": [
+      { "skill": "Distortion", "response": "Wait ~1 second, then burst. Very short duration." }
+    ],
+    "notes": "Bardic heals. Slippery (Blink, Distortion, clones). Don't chase."
+  },
+  "reaper": {
+    "spec_id": "reaper",
+    "profession_id": "necromancer",
+    "label": "Reaper",
+    "meta_role": "dps",
+    "kill_window": "After Reaper Shroud drops — burst real HP bar",
+    "key_threats": ["Gravedigger (GS 2) spammable below 50% HP", "Executioner's Scythe (Shroud 5) = overhead stun"],
+    "dont_hit": [
+      { "skill": "Reaper Shroud", "response": "Drain shroud first with poke damage, then burst when shroud drops. Do NOT try to burst through it — it's a second health bar." }
+    ],
+    "notes": "Double health bar (real HP + shroud HP). Gravedigger spammable below 50% HP. They are SLOW — kite when needed. Do NOT try to burst through shroud."
+  },
+  "scourge_supp": {
+    "spec_id": "scourge",
+    "profession_id": "necromancer",
+    "label": "Scourge (Support)",
+    "meta_role": "support",
+    "kill_window": "No shroud = squishier than Reaper in 1v1",
+    "key_threats": ["Sand shades on ground (dark circles)"],
+    "dont_hit": [],
+    "notes": "Sand shades on ground (dark circles). No shroud = squishier than Reaper 1v1. Don't cleave in shade fields. Stay out of shade radius."
+  },
+  "scourge_dps": {
+    "spec_id": "scourge",
+    "profession_id": "necromancer",
+    "label": "Scourge (DPS)",
+    "meta_role": "teamfighter",
+    "kill_window": "Between shade cooldowns — spread out when conditioned",
+    "key_threats": ["Condition AoE pressure", "Epidemic (copies conditions to nearby players)"],
+    "dont_hit": [],
+    "notes": "Condition AoE pressure. Epidemic copies conditions to nearby players — spread out when conditioned."
+  },
+  "harbinger": {
+    "spec_id": "harbinger",
+    "profession_id": "necromancer",
+    "label": "Harbinger",
+    "meta_role": "dps",
+    "kill_window": "When Blight stacks are high (self-damage reduces their HP)",
+    "key_threats": ["Elixir burst"],
+    "dont_hit": [],
+    "notes": "Elixir-based. Blight mechanic (self-damage for power)."
+  },
+  "ritualist": {
+    "spec_id": "ritualist",
+    "profession_id": "necromancer",
+    "label": "Ritualist",
+    "meta_role": "dps",
+    "kill_window": "Kill or avoid spirits — same core necro weakness: slow, no mobility",
+    "key_threats": ["Spirits + weapon enchants"],
+    "dont_hit": [],
+    "notes": "Spirits + weapon enchants. Newer spec. Kill or avoid spirits. Same core necro weakness: slow, no mobility."
+  }
+}

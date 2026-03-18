@@ -1,9 +1,0 @@
-[build]
-builder = "railpack"
-
-[deploy]
-startCommand = "export PATH=\"$(ls -d /mise/installs/node/*/bin 2>/dev/null | head -1):$PATH\" && uv run uvicorn app:app --host 0.0.0.0 --port $PORT --no-access-log"
-healthcheckPath = "/ready"
-healthcheckTimeout = 30
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3

@@ -1,0 +1,47 @@
+{
+  "guardian": {
+    "mainhand": ["Sword", "Mace", "Scepter", "Axe", "Dagger"],
+    "offhand": ["Focus", "Shield", "Torch", "Sword", "Dagger"],
+    "twohand": ["Greatsword", "Hammer", "Staff", "Longbow", "Spear"]
+  },
+  "revenant": {
+    "mainhand": ["Sword", "Mace", "Axe", "Dagger"],
+    "offhand": ["Sword", "Shield", "Axe", "Dagger"],
+    "twohand": ["Hammer", "Staff", "Greatsword", "Shortbow", "Spear"]
+  },
+  "warrior": {
+    "mainhand": ["Sword", "Axe", "Mace", "Dagger"],
+    "offhand": ["Sword", "Axe", "Mace", "Shield", "Warhorn", "Torch", "Dagger"],
+    "twohand": ["Greatsword", "Hammer", "Longbow", "Rifle", "Staff", "Spear"]
+  },
+  "engineer": {
+    "mainhand": ["Sword", "Pistol", "Mace"],
+    "offhand": ["Pistol", "Shield"],
+    "twohand": ["Hammer", "Rifle", "Shortbow", "Spear"]
+  },
+  "ranger": {
+    "mainhand": ["Sword", "Axe", "Dagger", "Mace"],
+    "offhand": ["Axe", "Dagger", "Torch", "Warhorn"],
+    "twohand": ["Greatsword", "Longbow", "Shortbow", "Staff", "Hammer", "Spear"]
+  },
+  "thief": {
+    "mainhand": ["Sword", "Dagger", "Pistol", "Scepter"],
+    "offhand": ["Dagger", "Pistol"],
+    "twohand": ["Shortbow", "Staff", "Rifle", "Spear"]
+  },
+  "elementalist": {
+    "mainhand": ["Sword", "Dagger", "Scepter"],
+    "offhand": ["Dagger", "Focus", "Warhorn"],
+    "twohand": ["Staff", "Hammer", "Spear"]
+  },
+  "mesmer": {
+    "mainhand": ["Sword", "Scepter", "Axe", "Dagger"],
+    "offhand": ["Sword", "Focus", "Pistol", "Shield", "Torch"],
+    "twohand": ["Greatsword", "Staff", "Spear"]
+  },
+  "necromancer": {
+    "mainhand": ["Axe", "Dagger", "Scepter"],
+    "offhand": ["Dagger", "Focus", "Warhorn", "Torch"],
+    "twohand": ["Greatsword", "Staff", "Pistol", "Spear"]
+  }
+}
