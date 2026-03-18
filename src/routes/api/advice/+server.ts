@@ -1,7 +1,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { anthropic } from '$lib/server/anthropic.js';
 import { db } from '$lib/server/db/index.js';
-import { userProfiles } from '$lib/server/db/schema.js';
+import { userProfiles, matches } from '$lib/server/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -9,6 +9,9 @@ import { json } from '@sveltejs/kit';
 import type { PlayerInfo, MapInfo, ProfileMatchups } from '$lib/types.js';
 import { checkAdviceUsage, decrementAdviceCalls } from '$lib/server/usage.js';
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '$lib/server/logger.js';
+import { getTracer } from '$lib/server/telemetry.js';
+import { SpanStatusCode } from '@opentelemetry/api';
 
 // --- Normalize matchups from DB (handles old {threat_level, notes} and new {threat, tip} formats) ---
 
@@ -208,7 +211,7 @@ REMINDER: Focus order must contain ONLY enemies. Per-enemy sections must each be
 // --- Handler ---
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-	const { myTeam, enemyTeam, map, profileId } = await request.json();
+	const { myTeam, enemyTeam, map, profileId, matchId } = await request.json();
 	const userId = locals.effectiveUserId;
 
 	// --- Usage limit check ---
@@ -218,6 +221,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (userId) {
 		const usage = await checkAdviceUsage(userId);
 		if (!usage.allowed) {
+			logger.warn({ event: 'rate_limited', userId, type: 'advice' }, 'Free advice calls exhausted');
 			return json(
 				{ error: 'Free advice calls exhausted', remaining: 0, byok_available: true },
 				{ status: 429 }
@@ -269,6 +273,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	);
 	const userMessage = buildUserPrompt(myTeam, enemyTeam, map, buildLabel, role);
 
+	logger.info({ event: 'advice_requested', userId, model: activeModel, map: map?.name ?? 'unknown' }, 'Advice generation started');
+
+	const tracer = getTracer();
+	const adviceSpan = tracer.startSpan('advice.generate', {
+		attributes: {
+			'advice.model': activeModel,
+			'advice.user_id': userId ?? 0,
+			'advice.map': map?.name ?? 'unknown'
+		}
+	});
+
 	const stream = await activeClient.messages.stream({
 		model: activeModel,
 		max_tokens: 1500,
@@ -281,12 +296,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	return new Response(
 		new ReadableStream({
 			async start(controller) {
+				let totalChars = 0;
+				const rawChunks: string[] = [];
 				try {
 					for await (const event of stream) {
 						if (
 							event.type === 'content_block_delta' &&
 							event.delta.type === 'text_delta'
 						) {
+							totalChars += event.delta.text.length;
+							rawChunks.push(event.delta.text);
 							controller.enqueue(
 								encoder.encode(
 									`data: ${JSON.stringify({ text: event.delta.text })}\n\n`
@@ -294,16 +313,50 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 							);
 						}
 					}
+
+					// Capture token usage from the final message
+					const finalMessage = await stream.finalMessage();
+					const tokensIn = finalMessage.usage?.input_tokens ?? 0;
+					const tokensOut = finalMessage.usage?.output_tokens ?? 0;
+
+					adviceSpan.setAttribute('advice.tokens_in', tokensIn);
+					adviceSpan.setAttribute('advice.tokens_out', tokensOut);
+					adviceSpan.setAttribute('advice.chars_out', totalChars);
+					adviceSpan.setStatus({ code: SpanStatusCode.OK });
+
+					// Save advice_raw to match record
+					const adviceRaw = rawChunks.join('');
+					if (matchId && adviceRaw) {
+						db.update(matches)
+							.set({ adviceRaw })
+							.where(eq(matches.matchId, matchId))
+							.catch((e) => {
+								logger.warn({ event: 'advice_raw_save_failed', matchId, error: e instanceof Error ? e.message : String(e) }, 'Failed to save advice_raw');
+							});
+					}
+
+					logger.info({
+						event: 'advice_complete',
+						userId,
+						model: activeModel,
+						tokensIn,
+						tokensOut,
+						totalChars
+					}, 'Advice generation completed');
+
 					controller.enqueue(encoder.encode('data: [DONE]\n\n'));
 				} catch (err) {
 					const message =
 						err instanceof Error ? err.message : 'Stream error';
+					adviceSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+					logger.error({ event: 'advice_error', userId, error: message }, 'Advice stream error');
 					controller.enqueue(
 						encoder.encode(
 							`data: ${JSON.stringify({ error: message })}\n\n`
 						)
 					);
 				} finally {
+					adviceSpan.end();
 					controller.close();
 				}
 			}

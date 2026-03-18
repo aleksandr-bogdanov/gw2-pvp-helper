@@ -6,14 +6,17 @@ import { eq, desc, inArray, count, and } from 'drizzle-orm';
 import { existsSync, unlinkSync } from 'fs';
 import { resolve } from 'path';
 import { learnMinimapReference } from '$lib/server/scan/minimap.js';
+import { logger } from '$lib/server/logger.js';
 
 // --- Helpers ---
 
+const SCREENSHOTS_DIR = process.env.SCREENSHOTS_DIR || resolve('static', 'screenshots');
+
 function resolveScreenshotUrl(hash: string | null): string | null {
 	if (!hash) return null;
-	for (const ext of ['png', 'jpg']) {
-		if (existsSync(resolve('static', 'screenshots', `${hash}.${ext}`))) {
-			return `/screenshots/${hash}.${ext}`;
+	for (const ext of ['jpg', 'jpeg', 'png']) {
+		if (existsSync(resolve(SCREENSHOTS_DIR, `${hash}.${ext}`))) {
+			return `/api/screenshots/${hash}`;
 		}
 	}
 	return null;
@@ -21,8 +24,8 @@ function resolveScreenshotUrl(hash: string | null): string | null {
 
 function resolveScreenshotPath(hash: string | null): string | null {
 	if (!hash) return null;
-	for (const ext of ['png', 'jpg']) {
-		const path = resolve('static', 'screenshots', `${hash}.${ext}`);
+	for (const ext of ['jpg', 'jpeg', 'png']) {
+		const path = resolve(SCREENSHOTS_DIR, `${hash}.${ext}`);
 		if (existsSync(path)) return path;
 	}
 	return null;
@@ -166,7 +169,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const ssPath = resolveScreenshotPath(screenshotHash);
 		if (ssPath) {
 			learnMinimapReference(ssPath, map, screenshotHash).catch((e) =>
-				console.warn('[match POST] minimap learn failed:', e)
+				logger.warn({ event: 'minimap_learn_failed', screenshotHash, error: e instanceof Error ? e.message : String(e) }, 'Minimap learn failed on POST')
 			);
 		}
 	}
@@ -222,7 +225,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		const ssPath = resolveScreenshotPath(current.screenshotHash);
 		if (ssPath) {
 			learnMinimapReference(ssPath, map, current.screenshotHash).catch((e) =>
-				console.warn('[match PATCH] minimap learn failed:', e)
+				logger.warn({ event: 'minimap_learn_failed', screenshotHash: current.screenshotHash, error: e instanceof Error ? e.message : String(e) }, 'Minimap learn failed on PATCH')
 			);
 		}
 	}

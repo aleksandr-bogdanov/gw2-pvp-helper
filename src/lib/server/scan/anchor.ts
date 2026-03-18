@@ -20,6 +20,7 @@ import { resolve } from 'path';
 import { loadTemplateFromFile, extractROI } from './preprocess.js';
 import { getLayout, computeIconPositions } from './layouts.js';
 import type { RawImage, AnchorResult, UISize, GameMode } from './types.js';
+import { logger } from '$lib/server/logger.js';
 
 const TEMPLATE_DIR = resolve(process.cwd(), 'data', 'x-templates');
 
@@ -308,10 +309,10 @@ export async function findAnchor(
 	const LOW_THRESHOLD = 0.7;
 	const allCandidates: Candidate[] = [];
 
-	if (DEBUG) console.log(`  Templates loaded: ${tmpls.length}`);
+	if (DEBUG) logger.debug({ event: 'anchor_templates_loaded', count: tmpls.length }, `Templates loaded: ${tmpls.length}`);
 	for (const tmpl of tmpls) {
 		const matches = nccMatchAll(roi, tmpl, LOW_THRESHOLD, 3);
-		if (DEBUG) console.log(`  Template ${tmpl.uiSize} (${tmpl.image.width}px): ${matches.length} matches`, matches.map(m => `(${SEARCH_X1 + m.x + Math.floor(tmpl.image.width/2)}, ${SEARCH_Y1 + m.y + Math.floor(tmpl.image.height/2)})=${m.score.toFixed(3)}`).join(', '));
+		if (DEBUG) logger.debug({ event: 'anchor_template_match', uiSize: tmpl.uiSize, width: tmpl.image.width, matchCount: matches.length }, `Template ${tmpl.uiSize} (${tmpl.image.width}px): ${matches.length} matches`);
 		for (const m of matches) {
 			const cx = SEARCH_X1 + m.x + Math.floor(tmpl.image.width / 2);
 			const cy = SEARCH_Y1 + m.y + Math.floor(tmpl.image.height / 2);

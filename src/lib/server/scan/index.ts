@@ -150,4 +150,4 @@ export async function scanScreenshot(imageBase64: string, _mediaType: string): P
 // Re-export warmup functions for server startup
 export { warmupClassifier } from './classifier.js';
 export { warmupOCR, terminateOCR } from './ocr.js';
-export { warmupMinimap } from './minimap.js';
+export { warmupMinimap, seedMinimapReferences } from './minimap.js';

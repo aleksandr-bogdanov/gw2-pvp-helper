@@ -14,15 +14,22 @@
  * The minimap is always anchored to the bottom-right corner of the screen.
  * Its size scales with UI size (Small → Larger), but the safe inner region
  * at (3100, 1100, 300×300) contains map content for all 4 UI presets.
+ *
+ * References are stored in the minimap_references DB table, with in-memory
+ * cache for fast detection. On first load, if the DB table is empty, it is
+ * seeded from data/minimap-references/thumbs/manifest.json.
  */
 
 import { resolve } from 'path';
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import sharp from 'sharp';
 import type { RawImage, GameMode } from './types.js';
+import { logger } from '$lib/server/logger.js';
+import { db } from '$lib/server/db/index.js';
+import { minimapReferences } from '$lib/server/db/schema.js';
+import { eq } from 'drizzle-orm';
 
 const THUMB_DIR = resolve(process.cwd(), 'data', 'minimap-references', 'thumbs');
-const LEARNED_DIR = resolve(process.cwd(), 'data', 'minimap-references', 'learned');
 
 /** Minimap crop region — safe inner area shared by all UI sizes at 3440×1440 */
 const CROP_X = 3100;
@@ -80,20 +87,46 @@ let references: MinimapReference[] | null = null;
 let refsLoading: Promise<MinimapReference[]> | null = null;
 
 /**
- * Load a manifest file and return references from a given directory.
+ * Encode a Float64Array as a base64 string for DB storage.
  */
-async function loadManifestRefs(dir: string, manifestFile: string): Promise<MinimapReference[]> {
-	const manifestPath = resolve(dir, manifestFile);
-	if (!existsSync(manifestPath)) return [];
+function encodeFeatures(features: Float64Array): string {
+	return Buffer.from(features.buffer).toString('base64');
+}
+
+/**
+ * Decode a base64 string back to Float64Array.
+ */
+function decodeFeatures(encoded: string): Float64Array {
+	const buf = Buffer.from(encoded, 'base64');
+	return new Float64Array(buf.buffer, buf.byteOffset, buf.byteLength / 8);
+}
+
+/**
+ * Seed the minimap_references table from the static manifest.json file.
+ * Only runs if the table is empty.
+ */
+export async function seedMinimapReferences(): Promise<number> {
+	// Check if table already has data
+	const existing = await db.select({ id: minimapReferences.id }).from(minimapReferences).limit(1);
+	if (existing.length > 0) {
+		return 0;
+	}
+
+	const manifestPath = resolve(THUMB_DIR, 'manifest.json');
+	if (!existsSync(manifestPath)) {
+		logger.warn({ event: 'minimap_seed_no_manifest' }, 'No manifest.json found for seeding');
+		return 0;
+	}
 
 	const manifest: { mapId: string; file: string }[] = JSON.parse(
 		readFileSync(manifestPath, 'utf-8')
 	);
 
-	const refs: MinimapReference[] = [];
+	let seeded = 0;
 	for (const entry of manifest) {
-		const filePath = resolve(dir, entry.file);
+		const filePath = resolve(THUMB_DIR, entry.file);
 		if (!existsSync(filePath)) continue;
+
 		const { data } = await sharp(filePath)
 			.removeAlpha()
 			.toColorspace('srgb')
@@ -105,22 +138,34 @@ async function loadManifestRefs(dir: string, manifestFile: string): Promise<Mini
 			features[i] = data[i] / 255.0;
 		}
 
-		const riFeatures = computeRotationInvariantFeatures(features);
-		refs.push({ mapId: entry.mapId, features, riFeatures });
+		const thumbnailData = encodeFeatures(features);
+
+		await db.insert(minimapReferences).values({
+			mapId: entry.mapId,
+			source: 'static',
+			thumbnailData
+		});
+		seeded++;
 	}
 
-	return refs;
+	logger.info({ event: 'minimap_seed_complete', count: seeded }, 'Minimap references seeded from manifest');
+	return seeded;
 }
 
 /**
- * Load reference thumbnails from both static and learned manifests.
+ * Load reference thumbnails from the database.
  */
 async function loadReferences(): Promise<MinimapReference[]> {
-	const [staticRefs, learnedRefs] = await Promise.all([
-		loadManifestRefs(THUMB_DIR, 'manifest.json'),
-		loadManifestRefs(LEARNED_DIR, 'manifest.json')
-	]);
-	return [...staticRefs, ...learnedRefs];
+	// Seed if needed (lazy — first time only)
+	await seedMinimapReferences();
+
+	const rows = await db.select().from(minimapReferences);
+
+	return rows.map((row) => {
+		const features = decodeFeatures(row.thumbnailData);
+		const riFeatures = computeRotationInvariantFeatures(features);
+		return { mapId: row.mapId, features, riFeatures };
+	});
 }
 
 async function getReferences(): Promise<MinimapReference[]> {
@@ -388,12 +433,12 @@ export function invalidateMinimapCache(): void {
  * Learn a new minimap reference from a saved screenshot file.
  *
  * Extracts the minimap thumbnail from the screenshot and saves it to the
- * learned references directory. This allows the system to improve map detection
+ * minimap_references DB table. This allows the system to improve map detection
  * over time based on user corrections.
  *
  * @param screenshotPath - Absolute path to the screenshot file
  * @param mapId - The correct map ID (from user correction or confirmed scan)
- * @param screenshotHash - Hash used for the filename (must be unique per screenshot)
+ * @param screenshotHash - Hash used for dedup (must be unique per screenshot)
  */
 export async function learnMinimapReference(
 	screenshotPath: string,
@@ -402,7 +447,7 @@ export async function learnMinimapReference(
 ): Promise<void> {
 	// Validate map ID
 	if (!MAP_MODES[mapId]) {
-		console.warn(`[minimap-learn] Unknown map ID: ${mapId}, skipping`);
+		logger.warn({ event: 'minimap_learn_unknown_map', mapId }, 'Unknown map ID, skipping learn');
 		return;
 	}
 
@@ -425,48 +470,33 @@ export async function learnMinimapReference(
 	try {
 		thumbFeatures = await extractMinimapThumb(rgbImage);
 	} catch (e) {
-		console.warn(`[minimap-learn] Could not extract minimap from ${screenshotHash}: ${e}`);
+		logger.warn({ event: 'minimap_learn_extract_failed', screenshotHash, error: e instanceof Error ? e.message : String(e) }, 'Could not extract minimap for learning');
 		return;
 	}
 
-	// Save the 16×16 thumbnail as PNG
-	const thumbPixels = new Uint8Array(THUMB_SIZE * THUMB_SIZE * 3);
-	for (let i = 0; i < thumbFeatures.length; i++) {
-		thumbPixels[i] = Math.round(thumbFeatures[i] * 255);
-	}
+	const thumbnailData = encodeFeatures(thumbFeatures);
 
-	if (!existsSync(LEARNED_DIR)) {
-		mkdirSync(LEARNED_DIR, { recursive: true });
-	}
+	// Upsert: check if this screenshot hash already has a reference
+	const [existing] = await db.select()
+		.from(minimapReferences)
+		.where(eq(minimapReferences.screenshotHash, screenshotHash));
 
-	const thumbFilename = `${mapId}_${screenshotHash}.png`;
-	const thumbPath = resolve(LEARNED_DIR, thumbFilename);
-
-	await sharp(Buffer.from(thumbPixels), {
-		raw: { width: THUMB_SIZE, height: THUMB_SIZE, channels: 3 }
-	})
-		.png()
-		.toFile(thumbPath);
-
-	// Update learned manifest
-	const manifestPath = resolve(LEARNED_DIR, 'manifest.json');
-	let manifest: { mapId: string; file: string }[] = [];
-	if (existsSync(manifestPath)) {
-		manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-	}
-
-	// Replace if same screenshot hash exists, otherwise append
-	const existingIdx = manifest.findIndex((e) => e.file === thumbFilename);
-	if (existingIdx >= 0) {
-		manifest[existingIdx].mapId = mapId;
+	if (existing) {
+		await db.update(minimapReferences)
+			.set({ mapId, thumbnailData })
+			.where(eq(minimapReferences.id, existing.id));
 	} else {
-		manifest.push({ mapId, file: thumbFilename });
+		await db.insert(minimapReferences).values({
+			mapId,
+			source: 'learned',
+			screenshotHash,
+			thumbnailData
+		});
 	}
-
-	writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 
 	// Invalidate cache so next scan uses the new reference
 	invalidateMinimapCache();
 
-	console.log(`[minimap-learn] Learned ${mapId} from ${screenshotHash} (${manifest.length} total learned refs)`);
+	const totalCount = await db.select({ id: minimapReferences.id }).from(minimapReferences);
+	logger.info({ event: 'minimap_learn_success', mapId, screenshotHash, totalRefs: totalCount.length }, 'Minimap reference learned');
 }

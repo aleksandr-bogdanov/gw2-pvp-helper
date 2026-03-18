@@ -3,11 +3,16 @@ import type { RequestHandler } from './$types.js';
 import { scanScreenshot } from '$lib/server/scan/index.js';
 import { lookupPlayers } from '$lib/server/players.js';
 import { db } from '$lib/server/db/index.js';
-import { userProfiles } from '$lib/server/db/schema.js';
+import { userProfiles, trainingSamples } from '$lib/server/db/schema.js';
 import type { PlayerInfo } from '$lib/types.js';
 import { createHash } from 'crypto';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
+import sharp from 'sharp';
+import { logger } from '$lib/server/logger.js';
+import { withSpan } from '$lib/server/telemetry.js';
+
+const SCREENSHOTS_DIR = process.env.SCREENSHOTS_DIR || resolve('static', 'screenshots');
 
 /** Normalize a name for fuzzy matching: lowercase, strip spaces/punctuation */
 function normalizeName(name: string): string {
@@ -46,7 +51,7 @@ function levenshtein(a: string, b: string): number {
 	return dp[m][n];
 }
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json();
 	const { image, mediaType } = body;
 
@@ -57,24 +62,41 @@ export const POST: RequestHandler = async ({ request }) => {
 	// Save screenshot FIRST (before scan) so we always keep the image for debugging
 	const imageBuffer = Buffer.from(image, 'base64');
 	const screenshotHash = createHash('sha256').update(imageBuffer).digest('hex').slice(0, 16);
-	const ext = mediaType.includes('png') ? 'png' : 'jpg';
-	const screenshotDir = resolve('static', 'screenshots');
-	if (!existsSync(screenshotDir)) mkdirSync(screenshotDir, { recursive: true });
-	const screenshotPath = resolve(screenshotDir, `${screenshotHash}.${ext}`);
+	if (!existsSync(SCREENSHOTS_DIR)) mkdirSync(SCREENSHOTS_DIR, { recursive: true });
+	const screenshotPath = resolve(SCREENSHOTS_DIR, `${screenshotHash}.jpg`);
 	if (!existsSync(screenshotPath)) {
-		writeFileSync(screenshotPath, imageBuffer);
+		// Convert to JPEG Q85 for storage efficiency
+		const jpegBuffer = await sharp(imageBuffer).jpeg({ quality: 85 }).toBuffer();
+		writeFileSync(screenshotPath, jpegBuffer);
 	}
+
+	// Get resolution from image metadata for training data
+	let resolution = '';
+	try {
+		const metadata = await sharp(imageBuffer).metadata();
+		resolution = `${metadata.width}x${metadata.height}`;
+	} catch { /* non-critical */ }
 
 	let result;
 	try {
-		result = await scanScreenshot(image, mediaType);
+		result = await withSpan('scan.pipeline', {
+			'scan.screenshot_hash': screenshotHash,
+			'scan.media_type': mediaType
+		}, async (span) => {
+			const scanResult = await scanScreenshot(image, mediaType);
+			const avgConfidence = [...(scanResult.red_team ?? []), ...(scanResult.blue_team ?? [])]
+				.reduce((sum, p) => sum + (p.spec_confidence ?? 0), 0) / 10;
+			span.setAttribute('scan.confidence_avg', avgConfidence);
+			span.setAttribute('scan.map', scanResult.map_detection?.detected_map ?? 'unknown');
+			return scanResult;
+		});
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
-		console.error(`[scan] Pipeline failed for ${screenshotHash}.${ext}: ${msg}`);
+		logger.error({ event: 'scan_failed', screenshotHash, error: msg }, 'Scan pipeline failed');
 		return json({
 			error: msg,
 			screenshotHash,
-			screenshotUrl: `/screenshots/${screenshotHash}.${ext}`
+			screenshotUrl: `/api/screenshots/${screenshotHash}`
 		}, { status: 422 });
 	}
 
@@ -151,12 +173,43 @@ export const POST: RequestHandler = async ({ request }) => {
 		};
 	}
 
+	logger.info({ event: 'scan_complete', screenshotHash, map: result.map_detection?.detected_map ?? 'unknown' }, 'Scan completed successfully');
+
+	// Store training sample (fire and forget)
+	const userId = locals?.effectiveUserId ?? null;
+	const allTeamPlayers = [...(result.red_team ?? []), ...(result.blue_team ?? [])];
+	const confidenceScores = allTeamPlayers.map((p, i) => ({
+		slot: i,
+		spec_confidence: p.spec_confidence ?? null,
+		name_confidence: p.name_confidence ?? null
+	}));
+
+	db.insert(trainingSamples).values({
+		userId,
+		screenshotHash,
+		screenshotPath: screenshotPath,
+		resolution: resolution || null,
+		uiSize: result.ui_size ?? null,
+		deviceInfo: userId ? undefined : null,
+		scanResult: {
+			red_team: result.red_team,
+			blue_team: result.blue_team,
+			map_detection: result.map_detection,
+			game_mode: result.game_mode,
+			ui_size: result.ui_size
+		},
+		confidenceScores,
+		anchorPosition: result.anchor_position ?? null
+	}).onConflictDoNothing().catch((e) => {
+		logger.warn({ event: 'training_sample_failed', screenshotHash, error: e instanceof Error ? e.message : String(e) }, 'Failed to save training sample');
+	});
+
 	return json({
 		...result,
 		user_team_color: userTeamColor,
 		red_team: result.red_team.map(enrichPlayer),
 		blue_team: result.blue_team.map(enrichPlayer),
 		screenshotHash,
-		screenshotUrl: `/screenshots/${screenshotHash}.${ext}`
+		screenshotUrl: `/api/screenshots/${screenshotHash}`
 	});
 };
