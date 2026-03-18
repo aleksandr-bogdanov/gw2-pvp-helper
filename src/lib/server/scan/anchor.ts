@@ -16,14 +16,12 @@
  * Performance: ~1.7s per screenshot (~38s for all 23).
  */
 
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
 import { loadTemplateFromFile, extractROI } from './preprocess.js';
 import { getLayout, computeIconPositions } from './layouts.js';
 import type { RawImage, AnchorResult, UISize, GameMode } from './types.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const TEMPLATE_DIR = resolve(__dirname, '../../../../data/x-templates');
+const TEMPLATE_DIR = resolve(process.cwd(), 'data', 'x-templates');
 
 interface Template {
 	image: RawImage;

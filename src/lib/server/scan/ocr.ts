@@ -21,7 +21,7 @@ import Tesseract from 'tesseract.js';
 import sharp from 'sharp';
 import type { RawImage } from './types.js';
 
-const NUM_WORKERS = 4;
+const NUM_WORKERS = 2;
 const SCALE_FACTOR = 3; // Scale up small crops for better OCR accuracy
 
 let scheduler: Tesseract.Scheduler | null = null;

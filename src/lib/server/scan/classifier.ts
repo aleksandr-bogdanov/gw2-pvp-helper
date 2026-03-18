@@ -20,15 +20,13 @@
  * - Total: 9 blocks × 32 = 288 features
  */
 
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
 import { readdirSync } from 'fs';
 import { loadReferenceIcon, resizeGrayscale } from './preprocess.js';
 import { getProfessionForSpec } from '$lib/game-data.js';
 import type { RawImage, ClassificationResult, ClassificationCandidate } from './types.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const WIKI_ICONS_DIR = resolve(__dirname, '../../../../data/profession-icons/wiki-big');
+const WIKI_ICONS_DIR = resolve(process.cwd(), 'data', 'profession-icons', 'wiki-big');
 
 const TARGET_SIZE = 32;
 const ORIENTATIONS = 8;

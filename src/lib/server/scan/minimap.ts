@@ -16,15 +16,13 @@
  * at (3100, 1100, 300×300) contains map content for all 4 UI presets.
  */
 
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import sharp from 'sharp';
 import type { RawImage, GameMode } from './types.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const THUMB_DIR = resolve(__dirname, '../../../../data/minimap-references/thumbs');
-const LEARNED_DIR = resolve(__dirname, '../../../../data/minimap-references/learned');
+const THUMB_DIR = resolve(process.cwd(), 'data', 'minimap-references', 'thumbs');
+const LEARNED_DIR = resolve(process.cwd(), 'data', 'minimap-references', 'learned');
 
 /** Minimap crop region — safe inner area shared by all UI sizes at 3440×1440 */
 const CROP_X = 3100;
