@@ -2,6 +2,7 @@ import { db } from './db/index.js';
 import { users, sessions, usedInviteCodes } from './db/schema.js';
 import { eq, and, gt } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const SESSION_COOKIE_NAME = 'gw2_session';
 const SESSION_TTL_DAYS = 30;
@@ -33,17 +34,65 @@ export async function validateInviteCode(code: string): Promise<{ valid: boolean
 	return { valid: true };
 }
 
+const BCRYPT_ROUNDS = 12;
+
+/** Hash a password with bcrypt */
+export async function hashPassword(password: string): Promise<string> {
+	return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+/** Verify a password against a bcrypt hash */
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+	return bcrypt.compare(password, hash);
+}
+
+/** Authenticate a user with username + password. Returns session token or null. */
+export async function loginUser(
+	username: string,
+	password: string
+): Promise<{ token: string; userId: number; username: string; role: string } | null> {
+	const [user] = await db
+		.select({
+			id: users.id,
+			username: users.username,
+			passwordHash: users.passwordHash,
+			role: users.role
+		})
+		.from(users)
+		.where(eq(users.username, username));
+
+	if (!user || !user.passwordHash) return null;
+
+	const valid = await verifyPassword(password, user.passwordHash);
+	if (!valid) return null;
+
+	const token = randomUUID();
+	const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+	await db.insert(sessions).values({
+		token,
+		userId: user.id,
+		expiresAt
+	});
+
+	return { token, userId: user.id, username: user.username, role: user.role };
+}
+
 /** Create a user + session, mark invite code as used. Returns session token. */
 export async function createUser(
 	username: string,
 	inviteCode: string,
 	consentGiven: boolean,
-	deviceInfo?: Record<string, unknown>
+	deviceInfo?: Record<string, unknown>,
+	password?: string
 ): Promise<{ token: string; userId: number }> {
+	const passwordHash = password ? await hashPassword(password) : null;
+
 	const [user] = await db
 		.insert(users)
 		.values({
 			username,
+			passwordHash,
 			inviteCodeUsed: inviteCode,
 			deviceInfo: deviceInfo ?? null,
 			consentGivenAt: consentGiven ? new Date() : null
@@ -72,14 +121,15 @@ export async function createUser(
 /** Resolve a session token to a user. Returns null if expired or not found. */
 export async function resolveSession(
 	token: string
-): Promise<{ id: number; username: string; role: string } | null> {
+): Promise<{ id: number; username: string; role: string; impersonatingUserId: number | null } | null> {
 	// Single JOIN query instead of two sequential SELECTs
 	const results = await db
 		.select({
 			userId: users.id,
 			username: users.username,
 			role: users.role,
-			lastSeenAt: users.lastSeenAt
+			lastSeenAt: users.lastSeenAt,
+			impersonatingUserId: sessions.impersonatingUserId
 		})
 		.from(sessions)
 		.innerJoin(users, eq(sessions.userId, users.id))
@@ -97,7 +147,20 @@ export async function resolveSession(
 			.catch(() => {});
 	}
 
-	return { id: result.userId, username: result.username, role: result.role };
+	return {
+		id: result.userId,
+		username: result.username,
+		role: result.role,
+		impersonatingUserId: result.impersonatingUserId
+	};
+}
+
+/** Set or clear impersonation on a session (admin only) */
+export async function setImpersonation(token: string, targetUserId: number | null): Promise<void> {
+	await db
+		.update(sessions)
+		.set({ impersonatingUserId: targetUserId })
+		.where(eq(sessions.token, token));
 }
 
 /** Delete a session (logout) */

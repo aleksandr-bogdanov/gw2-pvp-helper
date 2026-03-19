@@ -16,7 +16,7 @@ interface PlayerUpdate {
 }
 
 // PATCH: Update player data for a match (ratings, name, spec, profession, role, tag)
-export const PATCH: RequestHandler = async ({ request }) => {
+export const PATCH: RequestHandler = async ({ request, locals }) => {
 	const { matchId, ratings } = await request.json() as {
 		matchId: string;
 		ratings: PlayerUpdate[];
@@ -64,14 +64,21 @@ export const PATCH: RequestHandler = async ({ request }) => {
 				);
 		}
 
-		// Update tag in players metadata table (upsert)
-		if (r.tag !== undefined) {
+		// Update tag in players metadata table (upsert) — scoped to user
+		if (r.tag !== undefined && locals.effectiveUserId) {
 			const name = r.newCharacterName ?? r.characterName;
-			const [existing] = await db.select().from(players).where(eq(players.characterName, name));
+			const userId = locals.effectiveUserId;
+			const [existing] = await db
+				.select()
+				.from(players)
+				.where(and(eq(players.characterName, name), eq(players.userId, userId)));
 			if (existing) {
-				await db.update(players).set({ tag: r.tag }).where(eq(players.characterName, name));
+				await db
+					.update(players)
+					.set({ tag: r.tag })
+					.where(and(eq(players.characterName, name), eq(players.userId, userId)));
 			} else {
-				await db.insert(players).values({ characterName: name, tag: r.tag });
+				await db.insert(players).values({ characterName: name, userId, tag: r.tag });
 			}
 		}
 	}

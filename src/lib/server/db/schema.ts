@@ -5,6 +5,7 @@ import { pgTable, serial, text, boolean, integer, timestamp, uuid, jsonb } from 
 export const users = pgTable('users', {
 	id: serial('id').primaryKey(),
 	username: text('username').unique().notNull(),
+	passwordHash: text('password_hash'),
 	inviteCodeUsed: text('invite_code_used').notNull(),
 	role: text('role').default('user').notNull(),
 	deviceInfo: jsonb('device_info'),
@@ -20,7 +21,8 @@ export const users = pgTable('users', {
 export const sessions = pgTable('sessions', {
 	token: text('token').primaryKey(),
 	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-	expiresAt: timestamp('expires_at').notNull()
+	expiresAt: timestamp('expires_at').notNull(),
+	impersonatingUserId: integer('impersonating_user_id').references(() => users.id, { onDelete: 'set null' })
 });
 
 export const usedInviteCodes = pgTable('used_invite_codes', {
@@ -56,7 +58,9 @@ export const userProfiles = pgTable('user_profiles', {
 });
 
 export const players = pgTable('players', {
-	characterName: text('character_name').primaryKey(),
+	id: serial('id').primaryKey(),
+	characterName: text('character_name').notNull(),
+	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
 	nickname: text('nickname'),
 	profession: text('profession'),
 	spec: text('spec'),
@@ -115,7 +119,7 @@ export const minimapReferences = pgTable('minimap_references', {
 
 export const matchPlayers = pgTable('match_players', {
 	id: serial('id').primaryKey(),
-	matchId: uuid('match_id').references(() => matches.matchId),
+	matchId: uuid('match_id').references(() => matches.matchId, { onDelete: 'cascade' }),
 	characterName: text('character_name'),
 	team: text('team'),
 	profession: text('profession'),

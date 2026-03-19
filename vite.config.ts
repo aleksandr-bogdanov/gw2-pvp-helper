@@ -20,6 +20,9 @@ export default defineConfig({
 		port: 5174,
 		allowedHosts: true
 	},
+	optimizeDeps: {
+		include: ['tesseract.js']
+	},
 	ssr: {
 		external: [
 			'@opentelemetry/api',

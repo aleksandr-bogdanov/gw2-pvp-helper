@@ -71,6 +71,20 @@
       "when": 1773839161726,
       "tag": "0009_training_data_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1773861600000,
+      "tag": "0010_match_players_cascade",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1773948000000,
+      "tag": "0011_auth_password_login",
+      "breakpoints": true
     }
   ]
 }

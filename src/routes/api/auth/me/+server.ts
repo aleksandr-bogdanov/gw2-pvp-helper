@@ -24,6 +24,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 	return json({
 		user: {
 			...locals.user,
+			effectiveUserId: locals.effectiveUserId,
 			adviceCallsRemaining: fullUser?.adviceCallsRemaining ?? 0,
 			profileGensRemaining: fullUser?.profileGensRemaining ?? 0,
 			byokModelPreference: fullUser?.byokModelPreference ?? 'claude-sonnet-4-6',

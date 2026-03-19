@@ -7,13 +7,19 @@ import { eq } from 'drizzle-orm';
 
 /** POST /api/auth/register — create account with invite code + username */
 export const POST: RequestHandler = async ({ request, cookies }) => {
-	const { code, username, consent, deviceInfo } = await request.json();
+	const { code, username, password, consent, deviceInfo } = await request.json();
 
 	if (!code || typeof code !== 'string') {
 		throw error(400, 'Missing invite code');
 	}
 	if (!username || typeof username !== 'string') {
 		throw error(400, 'Missing username');
+	}
+	if (!password || typeof password !== 'string') {
+		throw error(400, 'Missing password');
+	}
+	if (password.length < 8) {
+		throw error(400, 'Password must be at least 8 characters');
 	}
 	if (!consent) {
 		throw error(400, 'Consent is required');
@@ -45,7 +51,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		trimmedUsername,
 		code.trim(),
 		true,
-		deviceInfo ?? undefined
+		deviceInfo ?? undefined,
+		password
 	);
 
 	// Set session cookie

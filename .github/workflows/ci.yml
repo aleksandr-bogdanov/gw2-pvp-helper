@@ -135,5 +135,8 @@ jobs:
           context: .
           push: false
           tags: gw2-pvp-helper:${{ github.sha }}
+          build-args: |
+            DATABASE_URL=postgres://build:build@localhost:5432/build
+            ANTHROPIC_API_KEY=sk-ant-build-dummy
           cache-from: type=gha
           cache-to: type=gha,mode=max
