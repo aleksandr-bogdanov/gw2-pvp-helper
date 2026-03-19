@@ -87,12 +87,18 @@ const authHandle: Handle = async ({ event, resolve }) => {
 				Sentry.setUser({ id: String(user.id), username: user.username });
 			}
 
-			// Admin impersonation: ?as=<userId> overrides effectiveUserId
-			const asParam = event.url.searchParams.get('as');
-			if (asParam && user.role === 'admin') {
-				const targetId = parseInt(asParam, 10);
-				if (!isNaN(targetId)) {
-					event.locals.effectiveUserId = targetId;
+			// Admin impersonation: session-stored or ?as=<userId> overrides effectiveUserId
+			if (user.role === 'admin') {
+				// Check query param first (takes priority, also updates session)
+				const asParam = event.url.searchParams.get('as');
+				if (asParam) {
+					const targetId = parseInt(asParam, 10);
+					if (!isNaN(targetId)) {
+						event.locals.effectiveUserId = targetId;
+					}
+				} else if (user.impersonatingUserId) {
+					// Fall back to session-stored impersonation
+					event.locals.effectiveUserId = user.impersonatingUserId;
 				}
 			}
 		}

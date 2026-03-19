@@ -43,11 +43,19 @@
 	}
 
 	let isAdmin = $state(false);
+	let currentUsername = $state('');
+	let userMenuOpen = $state(false);
 
 	if (browser) {
 		fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(data => {
 			if (data?.user?.role === 'admin') isAdmin = true;
+			if (data?.user?.username) currentUsername = data.user.username;
 		}).catch(() => {});
+	}
+
+	async function handleLogout() {
+		await fetch('/api/auth/logout', { method: 'POST' });
+		window.location.href = '/';
 	}
 
 	let scanning = $state(false);
@@ -64,6 +72,55 @@
 
 	/** Beta flag: upload ALL screenshots regardless of confidence */
 	const BETA_UPLOAD_ALL = true;
+
+	/** Core scan pipeline — shared by paste and drag-and-drop */
+	async function runScan(file: File) {
+		scanning = true;
+		scanError = '';
+		scanStep = 0;
+
+		try {
+			const { scanScreenshotClient, hasLowConfidence, blobToJpegBase64 } =
+				await import('$lib/scan-client/index.js');
+
+			const scanResult = await scanScreenshotClient(file, (step, _msg) => {
+				scanStep = step;
+			});
+
+			const jpegBase64 = await blobToJpegBase64(file);
+			const shouldUpload = BETA_UPLOAD_ALL || hasLowConfidence(scanResult);
+
+			if (shouldUpload) {
+				const bitmap = await createImageBitmap(file);
+				const resolution = `${bitmap.width}x${bitmap.height}`;
+				bitmap.close();
+
+				const res = await fetch('/api/scan/upload', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						image: jpegBase64,
+						scanResult,
+						resolution
+					})
+				});
+
+				if (res.ok) {
+					const enrichedResult = await res.json();
+					sessionStorage.setItem('scanResult', JSON.stringify(enrichedResult));
+					goto('/last-match');
+					return;
+				}
+			}
+
+			sessionStorage.setItem('scanResult', JSON.stringify(scanResult));
+			goto('/last-match');
+		} catch (err) {
+			scanError = err instanceof Error ? err.message : 'Scan failed';
+		} finally {
+			scanning = false;
+		}
+	}
 
 	async function handlePaste(e: ClipboardEvent) {
 		const items = e.clipboardData?.items;
@@ -91,60 +148,39 @@
 
 		if (!file) return;
 		e.preventDefault();
+		runScan(file);
+	}
 
-		scanning = true;
-		scanError = '';
-		scanStep = 0;
+	let dragOver = $state(false);
 
-		try {
-			// Client-side scan: run CV pipeline in the browser
-			const { scanScreenshotClient, hasLowConfidence, blobToJpegBase64 } =
-				await import('$lib/scan-client/index.js');
+	function handleDragOver(e: DragEvent) {
+		if (e.dataTransfer?.types.includes('Files')) {
+			e.preventDefault();
+			dragOver = true;
+		}
+	}
 
-			const scanResult = await scanScreenshotClient(file, (step, _msg) => {
-				scanStep = step;
-			});
+	function handleDragLeave() {
+		dragOver = false;
+	}
 
-			// Upload screenshot + result to server for training data + enrichment
-			const jpegBase64 = await blobToJpegBase64(file);
-			const shouldUpload = BETA_UPLOAD_ALL || hasLowConfidence(scanResult);
+	function handleDrop(e: DragEvent) {
+		e.preventDefault();
+		dragOver = false;
 
-			if (shouldUpload) {
-				const bitmap = await createImageBitmap(file);
-				const resolution = `${bitmap.width}x${bitmap.height}`;
-				bitmap.close();
+		const files = e.dataTransfer?.files;
+		if (!files) return;
 
-				const res = await fetch('/api/scan/upload', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						image: jpegBase64,
-						scanResult,
-						resolution
-					})
-				});
-
-				if (res.ok) {
-					// Use enriched result from server (has player history, user identification)
-					const enrichedResult = await res.json();
-					sessionStorage.setItem('scanResult', JSON.stringify(enrichedResult));
-					goto('/last-match');
-					return;
-				}
+		for (const f of files) {
+			if (f.type.startsWith('image/')) {
+				runScan(f);
+				return;
 			}
-
-			// If upload skipped or failed, use client result directly
-			sessionStorage.setItem('scanResult', JSON.stringify(scanResult));
-			goto('/last-match');
-		} catch (err) {
-			scanError = err instanceof Error ? err.message : 'Scan failed';
-		} finally {
-			scanning = false;
 		}
 	}
 </script>
 
-<svelte:window onpaste={handlePaste} />
+<svelte:window onpaste={handlePaste} ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleDrop} />
 
 <LoginGate>
 <div class="min-h-screen bg-(--color-bg)">
@@ -159,8 +195,7 @@
 					{ href: '/last-match', label: 'Last Match' },
 					{ href: '/history', label: 'History' },
 					{ href: '/players', label: 'Players' },
-					{ href: '/profiles', label: 'Profiles' },
-					...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : [])
+					{ href: '/profiles', label: 'Profiles' }
 				] as link}
 					<a
 						href={link.href}
@@ -178,9 +213,62 @@
 				>
 					{themes.find((t) => t.id === currentTheme)?.label}
 				</button>
+
+				<!-- User menu -->
+				{#if currentUsername}
+					<div class="relative">
+						<button
+							onclick={() => { userMenuOpen = !userMenuOpen; }}
+							class="flex items-center gap-1.5 rounded-md border border-(--color-border) bg-(--color-surface)/60 px-2.5 py-1 text-xs font-medium text-(--color-text-secondary) transition-all hover:bg-(--color-surface-hover) hover:text-(--color-text) cursor-pointer"
+						>
+							{currentUsername}
+							<svg class="h-3 w-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+						</button>
+
+						{#if userMenuOpen}
+							<!-- Backdrop to close menu -->
+							<button class="fixed inset-0 z-40 cursor-default" onclick={() => { userMenuOpen = false; }} tabindex="-1" aria-label="Close menu"></button>
+
+							<div class="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-(--color-border) bg-(--color-surface) py-1 shadow-lg">
+								<a
+									href="/settings"
+									class="block px-3 py-2 text-xs text-(--color-text-secondary) hover:bg-(--color-surface-hover) hover:text-(--color-text) transition-colors"
+									onclick={() => { userMenuOpen = false; }}
+								>
+									Settings
+								</a>
+								{#if isAdmin}
+									<a
+										href="/admin"
+										class="block px-3 py-2 text-xs text-(--color-text-secondary) hover:bg-(--color-surface-hover) hover:text-(--color-text) transition-colors"
+										onclick={() => { userMenuOpen = false; }}
+									>
+										Admin
+									</a>
+								{/if}
+								<div class="my-1 border-t border-(--color-border)"></div>
+								<button
+									onclick={handleLogout}
+									class="w-full text-left px-3 py-2 text-xs text-(--color-red) hover:bg-(--color-surface-hover) transition-colors cursor-pointer"
+								>
+									Log out
+								</button>
+							</div>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</nav>
+
+	{#if dragOver}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none">
+			<div class="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-(--color-accent) bg-(--color-surface)/80 px-12 py-10">
+				<svg class="h-10 w-10 text-(--color-accent)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+				<p class="text-base font-semibold text-(--color-text)">Drop screenshot to scan</p>
+			</div>
+		</div>
+	{/if}
 
 	{#if scanning}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">

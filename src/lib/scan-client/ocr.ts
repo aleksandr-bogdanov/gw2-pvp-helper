@@ -38,10 +38,7 @@ export function setOCRProgressCallback(cb: OCRProgressCallback | null): void {
 async function initOCR(): Promise<any> {
 	progressCallback?.('Downloading OCR engine (one-time)...');
 
-	// Use Function constructor to prevent Vite from analyzing this import
-	// at build time — Tesseract.js uses WASM/workers that confuse the bundler
-	const importFn = new Function('specifier', 'return import(specifier)');
-	const Tesseract = await importFn('tesseract.js');
+	const Tesseract = await import(/* @vite-ignore */ 'tesseract.js');
 
 	const worker = await Tesseract.createWorker('eng', undefined, {
 		logger: () => {}
