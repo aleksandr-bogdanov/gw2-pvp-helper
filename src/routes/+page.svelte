@@ -82,7 +82,7 @@
 		if (res.ok) {
 			const result = await res.json();
 			sessionStorage.setItem('scanResult', JSON.stringify(result));
-			goto('/last-match');
+			goto('/match/new');
 		}
 	}
 

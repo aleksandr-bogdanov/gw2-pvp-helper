@@ -108,13 +108,13 @@
 				if (res.ok) {
 					const enrichedResult = await res.json();
 					sessionStorage.setItem('scanResult', JSON.stringify(enrichedResult));
-					goto('/last-match');
+					goto('/match/new');
 					return;
 				}
 			}
 
 			sessionStorage.setItem('scanResult', JSON.stringify(scanResult));
-			goto('/last-match');
+			goto('/match/new');
 		} catch (err) {
 			scanError = err instanceof Error ? err.message : 'Scan failed';
 		} finally {
@@ -192,7 +192,7 @@
 			</a>
 			<div class="flex items-center gap-4">
 				{#each [
-					{ href: '/last-match', label: 'Last Match' },
+					{ href: '/match/new', label: 'Scout' },
 					{ href: '/history', label: 'History' },
 					{ href: '/players', label: 'Players' },
 					{ href: '/profiles', label: 'Profiles' }
