@@ -1,7 +1,16 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import type { ScanResult, PlayerInfo } from '$lib/types.js';
+	import type { MatchPlayer, MatchRecord, ParsedAdvice } from '$lib/match-types.js';
+	import {
+		getSpecIconUrl, specIconStyle, getMapName, getMapMode, getModeColor, getThreatColor,
+		getEnemyAdviceForIdx, getAllyAdviceForIdx,
+		highlightNames, splitSentences, buildNameFragments,
+		getTeams as getTeamsUtil, getEnemyAllyTeams as getEnemyAllyTeamsUtil,
+		flushAdvice, parseAdvice
+	} from '$lib/match-utils.js';
 	import {
 		maps,
 		specs,
@@ -13,41 +22,6 @@
 		cycleSpec,
 		getStolenSkill
 	} from '$lib/game-data.js';
-
-	// --- Interfaces (same as history page) ---
-	interface MatchPlayer {
-		characterName: string;
-		team: string;
-		profession: string;
-		spec: string;
-		role: string;
-		isUser: boolean;
-		ratingSkill: number | null;
-		ratingFriendly: number | null;
-		tag: string | null;
-	}
-
-	interface MatchRecord {
-		matchId: string;
-		userTeamColor: string | null;
-		map: string | null;
-		result: string | null;
-		screenshotHash: string | null;
-		screenshotUrl: string | null;
-		adviceText: string | null;
-		timestamp: string;
-		players: MatchPlayer[];
-	}
-
-	interface ParsedAdvice {
-		focusOrder: string;
-		babysit: string;
-		mapAdvice: string;
-		gameplan: string;
-		positioning: string;
-		enemyAdvice: { threat: string; advice: string; dont_hit?: string }[];
-		allyAdvice: { advice?: string }[];
-	}
 
 	// --- Scan confidence metadata per player (preserved from sessionStorage) ---
 	interface ScanMeta {
@@ -209,37 +183,6 @@
 		return 'high';
 	}
 
-	// --- Spec icon helpers (same as history page) ---
-	function getSpecIconUrl(specId: string, professionId?: string): string {
-		const id = specId === 'core' && professionId ? professionId : specId;
-		return `/icons/specs/${id}.png`;
-	}
-
-	function specIconStyle(specId: string, professionId: string): string {
-		const url = getSpecIconUrl(specId, professionId);
-		const color = getProfessionColor(professionId);
-		return `background-color: ${color}; -webkit-mask-image: url(${url}); mask-image: url(${url}); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;`;
-	}
-
-	function getMapName(mapId: string | null): string {
-		if (!mapId) return 'Unknown';
-		return maps.find((m) => m.id === mapId)?.name ?? mapId;
-	}
-
-	function getMapMode(mapId: string | null): string | null {
-		if (!mapId) return null;
-		return maps.find((m) => m.id === mapId)?.mode ?? null;
-	}
-
-	function getModeColor(mode: string): string {
-		switch (mode) {
-			case 'conquest': return 'text-(--color-accent)/70 bg-(--color-accent)/10';
-			case 'push': return 'text-(--color-amber)/70 bg-(--color-amber)/10';
-			case 'stronghold': return 'text-(--color-red)/70 bg-(--color-red)/10';
-			default: return 'text-(--color-text-tertiary) bg-(--color-surface-raised)';
-		}
-	}
-
 	// --- Player history helpers ---
 	function getHistoryBadge(p: PlayerInfo): { label: string; color: string } | null {
 		if (p.is_user) return null;
@@ -258,80 +201,110 @@
 		return `${w}W ${l}L`;
 	}
 
+	// Pre-advice name fragments (from PlayerInfo)
+	let nameFragmentsScan = $derived.by(() => {
+		const allPlayers = [...redTeam, ...blueTeam];
+		const fragments = new Set<string>();
+		for (const p of allPlayers) {
+			const name = p.character_name;
+			if (!name || name.startsWith('Unknown Player')) continue;
+			fragments.add(name);
+			const words = name.split(/\s+/);
+			if (words.length > 1) {
+				for (const word of words) {
+					if (word.length >= 3) fragments.add(word);
+				}
+			}
+		}
+		return fragments;
+	});
+
+	function highlightNamesScan(text: string): string {
+		return highlightNames(text, nameFragmentsScan);
+	}
+
 	// --- Init ---
 	onMount(async () => {
-		const stored = sessionStorage.getItem('scanResult');
+		const id = page.params.id;
 
-		if (stored) {
+		if (id === 'new') {
 			// Fresh scan — load from sessionStorage
-			const result: ScanResult = JSON.parse(stored);
-			scanResult = result;
-			redTeam = result.red_team;
-			blueTeam = result.blue_team;
-			userTeamColor = result.user_team_color;
+			const stored = sessionStorage.getItem('scanResult');
 
-			if (result.detected_map && result.detected_map.confidence > 0.2) {
-				selectedMap = result.detected_map.mapId;
-				mapAutoDetected = true;
-			}
+			if (stored) {
+				const result: ScanResult = JSON.parse(stored);
+				scanResult = result;
+				redTeam = result.red_team;
+				blueTeam = result.blue_team;
+				userTeamColor = result.user_team_color;
 
-			screenshotUrl = result.screenshotUrl ?? null;
-			screenshotHash = result.screenshotHash ?? null;
+				if (result.detected_map && result.detected_map.confidence > 0.2) {
+					selectedMap = result.detected_map.mapId;
+					mapAutoDetected = true;
+				}
 
-			// Store scan confidence metadata per player for correction panel
-			const meta = new Map<string, ScanMeta>();
-			for (let i = 0; i < result.red_team.length; i++) {
-				const p = result.red_team[i];
-				meta.set(`red-${i}`, {
-					spec_confidence: p.spec_confidence,
-					name_confidence: p.name_confidence,
-					top_candidates: p.top_candidates,
-					icon_crop_base64: p.icon_crop_base64,
-					spec_source: p.spec_source
-				});
-			}
-			for (let i = 0; i < result.blue_team.length; i++) {
-				const p = result.blue_team[i];
-				meta.set(`blue-${i}`, {
-					spec_confidence: p.spec_confidence,
-					name_confidence: p.name_confidence,
-					top_candidates: p.top_candidates,
-					icon_crop_base64: p.icon_crop_base64,
-					spec_source: p.spec_source
-				});
-			}
-			scanMetaMap = meta;
+				screenshotUrl = result.screenshotUrl ?? null;
+				screenshotHash = result.screenshotHash ?? null;
 
-			// Apply best-guess GW2 name formatting for OCR results (not "Unknown Player" placeholders)
-			for (const team of [redTeam, blueTeam]) {
-				for (let i = 0; i < team.length; i++) {
-					const name = team[i].character_name;
-					if (!name.startsWith('Unknown Player') && (team[i].name_confidence ?? 100) < NAME_HIGH) {
-						const guessed = guessGW2Name(name);
-						if (guessed !== name) {
-							team[i] = { ...team[i], character_name: guessed, name_confidence: 100 };
+				// Store scan confidence metadata per player for correction panel
+				const meta = new Map<string, ScanMeta>();
+				for (let i = 0; i < result.red_team.length; i++) {
+					const p = result.red_team[i];
+					meta.set(`red-${i}`, {
+						spec_confidence: p.spec_confidence,
+						name_confidence: p.name_confidence,
+						top_candidates: p.top_candidates,
+						icon_crop_base64: p.icon_crop_base64,
+						spec_source: p.spec_source
+					});
+				}
+				for (let i = 0; i < result.blue_team.length; i++) {
+					const p = result.blue_team[i];
+					meta.set(`blue-${i}`, {
+						spec_confidence: p.spec_confidence,
+						name_confidence: p.name_confidence,
+						top_candidates: p.top_candidates,
+						icon_crop_base64: p.icon_crop_base64,
+						spec_source: p.spec_source
+					});
+				}
+				scanMetaMap = meta;
+
+				// Apply best-guess GW2 name formatting for OCR results (not "Unknown Player" placeholders)
+				for (const team of [redTeam, blueTeam]) {
+					for (let i = 0; i < team.length; i++) {
+						const name = team[i].character_name;
+						if (!name.startsWith('Unknown Player') && (team[i].name_confidence ?? 100) < NAME_HIGH) {
+							const guessed = guessGW2Name(name);
+							if (guessed !== name) {
+								team[i] = { ...team[i], character_name: guessed, name_confidence: 100 };
+							}
 						}
 					}
 				}
-			}
 
-			// Profile auto-switch
-			const userPlayer = [...result.red_team, ...result.blue_team].find((p) => p.is_user);
-			if (userPlayer) {
-				userProfession = userPlayer.profession_id;
-				await tryAutoSwitchProfile(userPlayer.profession_id);
-			}
+				// Profile auto-switch
+				const userPlayer = [...result.red_team, ...result.blue_team].find((p) => p.is_user);
+				if (userPlayer) {
+					userProfession = userPlayer.profession_id;
+					await tryAutoSwitchProfile(userPlayer.profession_id);
+				}
 
-			// Persist match to DB immediately so refreshes recover it
-			await upsertRosterPlayers();
-			matchId = await saveMatch();
-			if (matchId) {
-				sessionStorage.setItem('lastMatchId', matchId);
+				// Persist match to DB immediately so refreshes recover it
+				await upsertRosterPlayers();
+				matchId = await saveMatch();
+				if (matchId) {
+					sessionStorage.setItem('lastMatchId', matchId);
+					replaceState(`/match/${matchId}`, {});
+				}
+			} else {
+				// No sessionStorage data for 'new' — redirect home
+				goto('/');
+				return;
 			}
 		} else {
-			// No sessionStorage — try to recover from DB (refresh scenario)
-			const savedMatchId = sessionStorage.getItem('lastMatchId');
-			const recovered = await recoverMatchFromDB(savedMatchId);
+			// Load from DB by match ID
+			const recovered = await recoverMatchFromDB(id ?? null);
 			if (!recovered) {
 				goto('/');
 				return;
@@ -715,207 +688,6 @@
 			}
 		}
 		return flagged;
-	}
-
-	// --- Advice parsing (same as history page) ---
-	function parseAdvice(m: MatchRecord): ParsedAdvice | null {
-		if (!m.adviceText) return null;
-
-		const { myTeamPlayers, enemyTeamPlayers } = getEnemyAllyTeams(m);
-		const result: ParsedAdvice = {
-			focusOrder: '',
-			babysit: '',
-			mapAdvice: '',
-			gameplan: '',
-			positioning: '',
-			enemyAdvice: enemyTeamPlayers.map(() => ({ threat: '', advice: '' })),
-			allyAdvice: myTeamPlayers.map(() => ({ advice: undefined }))
-		};
-
-		const lines = m.adviceText.split('\n');
-		let section = '';
-		let playerIdx = -1;
-		let currentBlock = '';
-
-		for (const line of lines) {
-			const trimmed = line.trim();
-			if (/^-{3,}$|^\*{3,}$|^_{3,}$/.test(trimmed)) continue;
-
-			if (/^(?:#+|\d+\.|\*\*)\s*(TEAM COMP|PER-ENEMY|PER.ALLY|FOCUS ORDER|MAP STRATEGY|GENERAL GAMEPLAN|WHO TO BABYSIT|ENEMY THREATS|TEAMFIGHT POSITION|KEY COOLDOWN)/i.test(trimmed)) {
-				flush(result, section, playerIdx, currentBlock, enemyTeamPlayers, myTeamPlayers);
-				currentBlock = '';
-				playerIdx = -1;
-
-				if (/PER-ENEMY|ENEMY THREATS/i.test(trimmed)) section = 'per_enemy';
-				else if (/PER.ALLY/i.test(trimmed)) section = 'per_ally';
-				else if (/FOCUS ORDER/i.test(trimmed)) section = 'focus';
-				else if (/MAP STRATEGY/i.test(trimmed)) section = 'map';
-				else if (/GENERAL GAMEPLAN/i.test(trimmed)) section = 'gameplan';
-				else if (/WHO TO BABYSIT/i.test(trimmed)) section = 'babysit';
-				else if (/TEAMFIGHT POSITION/i.test(trimmed)) section = 'positioning';
-				else if (/KEY COOLDOWN/i.test(trimmed)) section = 'gameplan';
-				else section = 'team_comp';
-				continue;
-			}
-
-			const playerMatch = trimmed.match(/^(?:#+\s*|\*\*)?(\d+)\.[\s*]*(.+)/);
-			if (playerMatch && (section === 'per_enemy' || section === 'per_ally')) {
-				flush(result, section, playerIdx, currentBlock, enemyTeamPlayers, myTeamPlayers);
-				currentBlock = '';
-
-				const headerText = playerMatch[2].toLowerCase();
-				const team = section === 'per_enemy' ? enemyTeamPlayers : myTeamPlayers;
-				const nameMatchIdx = team.findIndex(p =>
-					p.characterName && headerText.includes(p.characterName.toLowerCase())
-				);
-
-				playerIdx = nameMatchIdx >= 0 ? nameMatchIdx : parseInt(playerMatch[1]) - 1;
-
-				if (section === 'per_enemy') {
-					const threatMatch = headerText.match(/\b(HUNT|RESPECT|AVOID)\b/i);
-					if (threatMatch && playerIdx >= 0 && playerIdx < result.enemyAdvice.length) {
-						result.enemyAdvice[playerIdx] = {
-							...result.enemyAdvice[playerIdx],
-							threat: threatMatch[1].toLowerCase()
-						};
-					}
-				}
-				continue;
-			}
-
-			currentBlock += line + '\n';
-		}
-
-		flush(result, section, playerIdx, currentBlock, enemyTeamPlayers, myTeamPlayers);
-		return result;
-	}
-
-	function flush(
-		result: ParsedAdvice,
-		section: string,
-		playerIdx: number,
-		block: string,
-		enemyTeamPlayers: MatchPlayer[],
-		myTeamPlayers: MatchPlayer[]
-	) {
-		const text = block.trim();
-		if (!text) return;
-
-		if (section === 'per_enemy' && playerIdx >= 0 && playerIdx < result.enemyAdvice.length) {
-			const dontHitMatch = text.match(/(?:DON'?T\s+HIT|DO NOT HIT)[:\s]*(.*)/is);
-			const mainAdvice = dontHitMatch ? text.replace(dontHitMatch[0], '').trim() : text;
-			const dontHit = dontHitMatch ? dontHitMatch[1].trim() : undefined;
-
-			result.enemyAdvice[playerIdx] = {
-				...result.enemyAdvice[playerIdx],
-				advice: mainAdvice,
-				dont_hit: dontHit || result.enemyAdvice[playerIdx].dont_hit
-			};
-		} else if (section === 'per_ally' && playerIdx >= 0 && playerIdx < result.allyAdvice.length) {
-			result.allyAdvice[playerIdx] = { advice: text };
-		} else if (section === 'focus') {
-			result.focusOrder = text;
-		} else if (section === 'map') {
-			result.mapAdvice = text;
-		} else if (section === 'gameplan') {
-			result.gameplan = text;
-		} else if (section === 'babysit') {
-			result.babysit = text;
-		} else if (section === 'positioning') {
-			result.positioning = text;
-		}
-	}
-
-	// --- Name highlighting ---
-	function buildNameFragments(m: MatchRecord): Set<string> {
-		const fragments = new Set<string>();
-		for (const p of m.players) {
-			const name = p.characterName;
-			if (!name || name.startsWith('Unknown Player')) continue;
-			fragments.add(name);
-			const words = name.split(/\s+/);
-			if (words.length > 1) {
-				for (const word of words) {
-					if (word.length >= 3) fragments.add(word);
-				}
-			}
-		}
-		return fragments;
-	}
-
-	// Pre-advice name fragments (from PlayerInfo)
-	let nameFragmentsScan = $derived.by(() => {
-		const allPlayers = [...redTeam, ...blueTeam];
-		const fragments = new Set<string>();
-		for (const p of allPlayers) {
-			const name = p.character_name;
-			if (!name || name.startsWith('Unknown Player')) continue;
-			fragments.add(name);
-			const words = name.split(/\s+/);
-			if (words.length > 1) {
-				for (const word of words) {
-					if (word.length >= 3) fragments.add(word);
-				}
-			}
-		}
-		return fragments;
-	});
-
-	function splitSentences(text: string): string {
-		const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z"'"(])/).map(s => s.trim()).filter(Boolean);
-		if (sentences.length <= 1) return `• ${text}`;
-		return '<ul class="list-disc list-inside space-y-0.5">' + sentences.map(s => `<li>${s}</li>`).join('') + '</ul>';
-	}
-
-	function highlightNames(text: string, fragments: Set<string>): string {
-		let result = splitSentences(text);
-		result = result.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-(--color-text)">$1</strong>');
-		if (fragments.size === 0) return result;
-		const sorted = [...fragments].sort((a, b) => b.length - a.length);
-		const escaped = sorted.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-		const pattern = new RegExp(`(?<![<\\w])\\b(${escaped.join('|')})\\b(?![\\w>])`, 'gi');
-		return result.replace(pattern, '<strong class="font-semibold text-(--color-text)">$1</strong>');
-	}
-
-	function highlightNamesScan(text: string): string {
-		return highlightNames(text, nameFragmentsScan);
-	}
-
-	function getThreatColor(threat: string): string {
-		switch (threat) {
-			case 'hunt': return 'text-(--color-red) bg-(--color-red)/10';
-			case 'respect': return 'text-(--color-amber) bg-(--color-amber)/10';
-			case 'avoid': return 'text-(--color-text-tertiary) bg-(--color-surface-raised)';
-			default: return 'text-(--color-text-tertiary)';
-		}
-	}
-
-	function getEnemyAdviceForIdx(advice: ParsedAdvice | null, idx: number) {
-		if (!advice) return null;
-		const a = advice.enemyAdvice[idx];
-		return a?.advice ? a : null;
-	}
-
-	function getAllyAdviceForIdx(advice: ParsedAdvice | null, idx: number) {
-		if (!advice) return null;
-		const a = advice.allyAdvice[idx];
-		return a?.advice ? a : null;
-	}
-
-	function getTeams(m: MatchRecord) {
-		return {
-			redTeam: m.players.filter((p) => p.team === 'red'),
-			blueTeam: m.players.filter((p) => p.team === 'blue')
-		};
-	}
-
-	function getEnemyAllyTeams(m: MatchRecord) {
-		const myColor = m.userTeamColor ?? 'red';
-		const enemyColor = myColor === 'red' ? 'blue' : 'red';
-		return {
-			myTeamPlayers: m.players.filter((p) => p.team === myColor),
-			enemyTeamPlayers: m.players.filter((p) => p.team === enemyColor)
-		};
 	}
 
 	// --- Upsert players ---
@@ -1664,8 +1436,8 @@
 
 <!-- ============ POST-ADVICE: History-style display ============ -->
 {#if match && adviceReady}
-	{@const { redTeam: redTeamMatch, blueTeam: blueTeamMatch } = getTeams(match)}
-	{@const { myTeamPlayers, enemyTeamPlayers } = getEnemyAllyTeams(match)}
+	{@const { redTeam: redTeamMatch, blueTeam: blueTeamMatch } = getTeamsUtil(match)}
+	{@const { myTeam: myTeamPlayers, enemyTeam: enemyTeamPlayers } = getEnemyAllyTeamsUtil(match)}
 	{@const advice = parseAdvice(match)}
 	{@const nameFrags = buildNameFragments(match)}
 
