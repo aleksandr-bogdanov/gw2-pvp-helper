@@ -171,7 +171,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		if (usage.isByok && usage.apiKey) {
 			activeClient = new Anthropic({ apiKey: usage.apiKey });
 		} else {
-			await decrementProfileGens(userId);
+			// Atomic decrement — returns -1 if another request already consumed the last call
+			const remaining = await decrementProfileGens(userId);
+			if (remaining < 0) {
+				return json(
+					{ error: 'Free profile generations exhausted', remaining: 0, byok_available: true },
+					{ status: 429 }
+				);
+			}
 		}
 	}
 
