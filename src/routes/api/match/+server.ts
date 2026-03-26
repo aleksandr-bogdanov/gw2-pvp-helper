@@ -102,12 +102,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		throw error(400, 'Missing team data');
 	}
 
-	// Dedup by screenshot hash — return existing match + corrected players
-	if (screenshotHash) {
+	// Dedup by screenshot hash — return existing match + corrected players (scoped to user)
+	if (screenshotHash && userId) {
 		const [existing] = await db
 			.select()
 			.from(matches)
-			.where(eq(matches.screenshotHash, screenshotHash));
+			.where(and(eq(matches.screenshotHash, screenshotHash), eq(matches.userId, userId)));
 		if (existing) {
 			const existingPlayers = await db
 				.select()
