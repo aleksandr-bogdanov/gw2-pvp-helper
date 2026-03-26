@@ -119,22 +119,48 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		throw error(401, 'Unauthorized');
 	}
 
-	// Bulk-update ratings on match_players rows for this player in user's matches only (single query with subquery)
+	// Bulk-update ratings on match_players rows for this player in user's matches only
 	if (ratingSkill !== undefined || ratingFriendly !== undefined) {
-		const setClauses: string[] = [];
-		if (ratingSkill !== undefined) {
-			setClauses.push(`rating_skill = ${ratingSkill === null ? 'NULL' : Number(ratingSkill)}`);
-		}
-		if (ratingFriendly !== undefined) {
-			setClauses.push(`rating_friendly = ${ratingFriendly === null ? 'NULL' : Number(ratingFriendly)}`);
+		// Validate rating values are numbers or null
+		const parsedSkill =
+			ratingSkill === null ? null : ratingSkill !== undefined ? Number(ratingSkill) : undefined;
+		const parsedFriendly =
+			ratingFriendly === null
+				? null
+				: ratingFriendly !== undefined
+					? Number(ratingFriendly)
+					: undefined;
+
+		if (
+			(parsedSkill !== undefined && parsedSkill !== null && isNaN(parsedSkill)) ||
+			(parsedFriendly !== undefined && parsedFriendly !== null && isNaN(parsedFriendly))
+		) {
+			throw error(400, 'Rating values must be numbers or null');
 		}
 
-		await db.execute(sql`
-			UPDATE match_players
-			SET ${sql.raw(setClauses.join(', '))}
-			WHERE character_name = ${characterName}
-			  AND match_id IN (SELECT match_id FROM matches WHERE user_id = ${userId})
-		`);
+		// Use separate parameterized queries to avoid sql.raw()
+		if (parsedSkill !== undefined && parsedFriendly !== undefined) {
+			await db.execute(sql`
+				UPDATE match_players
+				SET rating_skill = ${parsedSkill}, rating_friendly = ${parsedFriendly}
+				WHERE character_name = ${characterName}
+				  AND match_id IN (SELECT match_id FROM matches WHERE user_id = ${userId})
+			`);
+		} else if (parsedSkill !== undefined) {
+			await db.execute(sql`
+				UPDATE match_players
+				SET rating_skill = ${parsedSkill}
+				WHERE character_name = ${characterName}
+				  AND match_id IN (SELECT match_id FROM matches WHERE user_id = ${userId})
+			`);
+		} else if (parsedFriendly !== undefined) {
+			await db.execute(sql`
+				UPDATE match_players
+				SET rating_friendly = ${parsedFriendly}
+				WHERE character_name = ${characterName}
+				  AND match_id IN (SELECT match_id FROM matches WHERE user_id = ${userId})
+			`);
+		}
 	}
 
 	// If only ratings were updated, return early

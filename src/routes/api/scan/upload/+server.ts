@@ -10,6 +10,7 @@ import type { RequestHandler } from './$types.js';
 import { lookupPlayers } from '$lib/server/players.js';
 import { db } from '$lib/server/db/index.js';
 import { userProfiles, trainingSamples } from '$lib/server/db/schema.js';
+import { eq } from 'drizzle-orm';
 import type { PlayerInfo, ScanResult } from '$lib/types.js';
 import { createHash } from 'crypto';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
@@ -70,11 +71,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		writeFileSync(screenshotPath, imageBuffer);
 	}
 
-	// Load user profiles for identification
-	const profiles = await db.select({
-		characterName: userProfiles.characterName,
-		profession: userProfiles.profession
-	}).from(userProfiles);
+	// Load THIS user's profile character names for identification (multi-tenant)
+	const userId = locals?.effectiveUserId ?? null;
+	const profileQuery = userId
+		? db.select({ characterName: userProfiles.characterName, profession: userProfiles.profession })
+			.from(userProfiles).where(eq(userProfiles.userId, userId))
+		: db.select({ characterName: userProfiles.characterName, profession: userProfiles.profession })
+			.from(userProfiles);
+	const profiles = await profileQuery;
 
 	const profileNames = profiles.map((p) => p.characterName);
 
@@ -103,10 +107,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	identifyUser(scanResult.red_team, 'red');
 	identifyUser(scanResult.blue_team, 'blue');
 
-	// Enrich with player history
+	// Enrich with player history (scoped to user's own matches)
 	const allPlayers = [...scanResult.red_team, ...scanResult.blue_team];
 	const names = allPlayers.map((p: PlayerInfo) => p.character_name);
-	const history = await lookupPlayers(names);
+	const history = await lookupPlayers(names, userId);
 
 	function enrichPlayer(p: PlayerInfo): PlayerInfo {
 		const h = history.get(p.character_name);
@@ -135,7 +139,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	// Store training sample
-	const userId = locals?.effectiveUserId ?? null;
 	const allTeamPlayers = [...(scanResult.red_team ?? []), ...(scanResult.blue_team ?? [])];
 	const confidenceScores = allTeamPlayers.map((p, i) => ({
 		slot: i,

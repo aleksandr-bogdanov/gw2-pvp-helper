@@ -4,6 +4,7 @@ import { scanScreenshot } from '$lib/server/scan/index.js';
 import { lookupPlayers } from '$lib/server/players.js';
 import { db } from '$lib/server/db/index.js';
 import { userProfiles, trainingSamples } from '$lib/server/db/schema.js';
+import { eq } from 'drizzle-orm';
 import type { PlayerInfo } from '$lib/types.js';
 import { createHash } from 'crypto';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
@@ -100,11 +101,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}, { status: 422 });
 	}
 
-	// Load all user profile character names for user identification
-	const profiles = await db.select({
-		characterName: userProfiles.characterName,
-		profession: userProfiles.profession
-	}).from(userProfiles);
+	// Load THIS user's profile character names for user identification (multi-tenant)
+	const userId = locals?.effectiveUserId ?? null;
+	const profileQuery = userId
+		? db.select({ characterName: userProfiles.characterName, profession: userProfiles.profession })
+			.from(userProfiles).where(eq(userProfiles.userId, userId))
+		: db.select({ characterName: userProfiles.characterName, profession: userProfiles.profession })
+			.from(userProfiles);
+	const profiles = await profileQuery;
 
 	const profileNames = profiles.map((p) => p.characterName);
 
@@ -135,10 +139,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	identifyUser(result.red_team, 'red');
 	identifyUser(result.blue_team, 'blue');
 
-	// Enrich with player history
+	// Enrich with player history (scoped to user's own matches)
 	const allPlayers = [...result.red_team, ...result.blue_team];
 	const names = allPlayers.map((p: PlayerInfo) => p.character_name);
-	const history = await lookupPlayers(names);
+	const history = await lookupPlayers(names, userId);
 
 	function enrichPlayer(p: PlayerInfo): PlayerInfo & {
 		times_seen?: number;
@@ -176,7 +180,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	logger.info({ event: 'scan_complete', screenshotHash, map: result.detected_map?.mapId ?? 'unknown' }, 'Scan completed successfully');
 
 	// Store training sample (fire and forget)
-	const userId = locals?.effectiveUserId ?? null;
 	const allTeamPlayers = [...(result.red_team ?? []), ...(result.blue_team ?? [])];
 	const confidenceScores = allTeamPlayers.map((p, i) => ({
 		slot: i,
