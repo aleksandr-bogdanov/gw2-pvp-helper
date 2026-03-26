@@ -3,7 +3,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { anthropic } from '$lib/server/anthropic.js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { checkProfileUsage, decrementProfileGens } from '$lib/server/usage.js';
+import { checkProfileUsage, decrementProfileGens, restoreProfileGen } from '$lib/server/usage.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { logger } from '$lib/server/logger.js';
 
@@ -158,6 +158,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	// --- Usage limit check ---
 	let activeClient = anthropic;
+	let shouldRestoreOnError = false;
 
 	if (userId) {
 		const usage = await checkProfileUsage(userId);
@@ -172,6 +173,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			activeClient = new Anthropic({ apiKey: usage.apiKey });
 		} else {
 			await decrementProfileGens(userId);
+			shouldRestoreOnError = true;
 		}
 	}
 
@@ -265,6 +267,17 @@ ${weaknesses ? `What gets them killed most often:\n${weaknesses}` : ''}`;
 					);
 				} catch (err) {
 					const message = err instanceof Error ? err.message : 'Generation error';
+					// Restore usage credit on API failure (user shouldn't lose a gen for errors)
+					if (shouldRestoreOnError && userId) {
+						try {
+							await restoreProfileGen(userId);
+						} catch {
+							logger.warn(
+								{ event: 'profile_gen_restore_failed', userId },
+								'Failed to restore profile gen after error'
+							);
+						}
+					}
 					controller.enqueue(
 						encoder.encode(
 							`data: ${JSON.stringify({ error: message })}\n\n`
