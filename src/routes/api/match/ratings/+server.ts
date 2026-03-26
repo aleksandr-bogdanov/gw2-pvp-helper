@@ -97,10 +97,20 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 };
 
 // GET: Get ratings for a specific match
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
 	const matchId = url.searchParams.get('matchId');
 	if (!matchId) {
 		throw error(400, 'Missing matchId');
+	}
+
+	// Verify match belongs to the requesting user
+	const userId = locals.effectiveUserId;
+	if (userId) {
+		const [match] = await db.select({ matchId: matches.matchId }).from(matches)
+			.where(and(eq(matches.matchId, matchId), eq(matches.userId, userId)));
+		if (!match) {
+			throw error(404, 'Match not found');
+		}
 	}
 
 	const rows = await db
