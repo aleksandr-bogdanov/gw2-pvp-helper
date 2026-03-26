@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { db } from '$lib/server/db/index.js';
-import { matchPlayers, players } from '$lib/server/db/schema.js';
+import { matches, matchPlayers, players } from '$lib/server/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 interface PlayerUpdate {
@@ -21,9 +21,21 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		matchId: string;
 		ratings: PlayerUpdate[];
 	};
+	const userId = locals.effectiveUserId;
 
 	if (!matchId || !ratings || !Array.isArray(ratings)) {
 		throw error(400, 'Missing matchId or ratings array');
+	}
+
+	// Verify match ownership (multi-tenant: user can only update their own matches)
+	if (userId) {
+		const [match] = await db
+			.select({ matchId: matches.matchId })
+			.from(matches)
+			.where(and(eq(matches.matchId, matchId), eq(matches.userId, userId)));
+		if (!match) {
+			throw error(404, 'Match not found');
+		}
 	}
 
 	for (const r of ratings) {
@@ -65,9 +77,8 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Update tag in players metadata table (upsert) — scoped to user
-		if (r.tag !== undefined && locals.effectiveUserId) {
+		if (r.tag !== undefined && userId) {
 			const name = r.newCharacterName ?? r.characterName;
-			const userId = locals.effectiveUserId;
 			const [existing] = await db
 				.select()
 				.from(players)
@@ -86,11 +97,24 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 	return json({ success: true });
 };
 
-// GET: Get ratings for a specific match
-export const GET: RequestHandler = async ({ url }) => {
+// GET: Get ratings for a specific match (scoped to user's own matches)
+export const GET: RequestHandler = async ({ url, locals }) => {
 	const matchId = url.searchParams.get('matchId');
+	const userId = locals.effectiveUserId;
+
 	if (!matchId) {
 		throw error(400, 'Missing matchId');
+	}
+
+	// Verify match ownership (multi-tenant)
+	if (userId) {
+		const [match] = await db
+			.select({ matchId: matches.matchId })
+			.from(matches)
+			.where(and(eq(matches.matchId, matchId), eq(matches.userId, userId)));
+		if (!match) {
+			throw error(404, 'Match not found');
+		}
 	}
 
 	const rows = await db
