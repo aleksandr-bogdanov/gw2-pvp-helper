@@ -156,7 +156,15 @@ function parseProfileAndMatchups(fullText: string): {
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const userId = locals.effectiveUserId;
 
-	// --- Usage limit check ---
+	// --- Validate input BEFORE consuming usage ---
+	const body = await request.json();
+	const { profession, spec, role, weaponsMain, weaponsSwap, buildLabel, playstyle, weaknesses, decodedBuild, rune, relic, amulet, sigilsMain, sigilsSwap } = body;
+
+	if (!profession || !spec || !role) {
+		throw error(400, 'Missing required fields: profession, spec, role');
+	}
+
+	// --- Usage limit check (after validation, so invalid requests don't consume credits) ---
 	let activeClient = anthropic;
 	let shouldRestoreOnError = false;
 
@@ -175,13 +183,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			await decrementProfileGens(userId);
 			shouldRestoreOnError = true;
 		}
-	}
-
-	const body = await request.json();
-	const { profession, spec, role, weaponsMain, weaponsSwap, buildLabel, playstyle, weaknesses, decodedBuild, rune, relic, amulet, sigilsMain, sigilsSwap } = body;
-
-	if (!profession || !spec || !role) {
-		throw error(400, 'Missing required fields: profession, spec, role');
 	}
 
 	const systemPrompt = extractSystemPrompt();
