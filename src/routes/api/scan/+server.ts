@@ -66,19 +66,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}, { status: 422 });
 	}
 
-	// Identify user and enrich with history
-	const profileNames = await loadProfileNames();
+	// Identify user and enrich with history (tenant-scoped)
+	const userId = locals?.effectiveUserId ?? null;
+	const profileNames = await loadProfileNames(userId);
 	const userTeamColor = identifyUserInTeams(
 		result.red_team, result.blue_team, profileNames, result.user_team_color
 	);
 
 	const allPlayers = [...result.red_team, ...result.blue_team];
-	const enriched = await enrichPlayersWithHistory(allPlayers);
+	const enriched = await enrichPlayersWithHistory(allPlayers, userId);
 
 	logger.info({ event: 'scan_complete', screenshotHash, map: result.detected_map?.mapId ?? 'unknown' }, 'Scan completed successfully');
 
 	// Store training sample (fire and forget)
-	const userId = locals?.effectiveUserId ?? null;
 	const allTeamPlayers = [...(result.red_team ?? []), ...(result.blue_team ?? [])];
 	const confidenceScores = allTeamPlayers.map((p, i) => ({
 		slot: i,

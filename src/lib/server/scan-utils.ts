@@ -9,6 +9,7 @@ import type { PlayerInfo } from '$lib/types.js';
 import { lookupPlayers } from '$lib/server/players.js';
 import { db } from '$lib/server/db/index.js';
 import { userProfiles } from '$lib/server/db/schema.js';
+import { eq } from 'drizzle-orm';
 
 /** Normalize a name for fuzzy matching: lowercase, strip spaces/punctuation */
 export function normalizeName(name: string): string {
@@ -48,12 +49,14 @@ export function namesMatch(ocrName: string, profileName: string): boolean {
 	return levenshtein(a, b) <= maxDist;
 }
 
-/** Load all user profile character names from the database */
-export async function loadProfileNames(): Promise<string[]> {
-	const profiles = await db.select({
-		characterName: userProfiles.characterName,
-		profession: userProfiles.profession
-	}).from(userProfiles);
+/** Load profile character names from the database, scoped to the given user */
+export async function loadProfileNames(userId: number | null): Promise<string[]> {
+	const query = userId
+		? db.select({ characterName: userProfiles.characterName })
+			.from(userProfiles).where(eq(userProfiles.userId, userId))
+		: db.select({ characterName: userProfiles.characterName })
+			.from(userProfiles);
+	const profiles = await query;
 	return profiles.map((p) => p.characterName);
 }
 
@@ -100,10 +103,11 @@ export function identifyUserInTeams(
  * Also overrides low-confidence spec detections with historical corrected specs.
  */
 export async function enrichPlayersWithHistory(
-	players: PlayerInfo[]
+	players: PlayerInfo[],
+	userId: number | null
 ): Promise<Map<string, PlayerInfo>> {
 	const names = players.map((p) => p.character_name);
-	const history = await lookupPlayers(names);
+	const history = await lookupPlayers(names, userId);
 
 	const enriched = new Map<string, PlayerInfo>();
 	for (const p of players) {
