@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { setImpersonation, SESSION_COOKIE_NAME } from '$lib/server/auth.js';
+import { logger } from '$lib/server/logger.js';
 
 /** POST /api/admin/impersonate — set or clear impersonation target */
 export const POST: RequestHandler = async ({ request, cookies, locals }) => {
@@ -21,6 +22,19 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 	}
 
 	await setImpersonation(token, targetId);
+
+	// Audit trail: log impersonation start/stop
+	if (targetId) {
+		logger.info(
+			{ event: 'impersonation_start', adminId: locals.user.id, adminUsername: locals.user.username, targetUserId: targetId },
+			`Admin ${locals.user.username} started impersonating user ${targetId}`
+		);
+	} else {
+		logger.info(
+			{ event: 'impersonation_stop', adminId: locals.user.id, adminUsername: locals.user.username },
+			`Admin ${locals.user.username} stopped impersonating`
+		);
+	}
 
 	return json({ impersonating: targetId });
 };
