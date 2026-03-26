@@ -98,8 +98,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const { myTeam, enemyTeam, map, userTeamColor, userProfileId, screenshotHash } = await request.json();
 	const userId = locals.effectiveUserId;
 
-	if (!myTeam || !enemyTeam) {
-		throw error(400, 'Missing team data');
+	if (!Array.isArray(myTeam) || !Array.isArray(enemyTeam)) {
+		throw error(400, 'Missing or invalid team data');
+	}
+
+	// Validate player objects have required fields
+	for (const p of [...myTeam, ...enemyTeam]) {
+		if (!p || typeof p.character_name !== 'string' || typeof p.profession_id !== 'string' || typeof p.spec_id !== 'string') {
+			throw error(400, 'Each player must have character_name, profession_id, and spec_id');
+		}
 	}
 
 	// Dedup by screenshot hash — return existing match + corrected players

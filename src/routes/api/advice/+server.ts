@@ -292,6 +292,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	});
 
 	const encoder = new TextEncoder();
+	let aborted = false;
 
 	return new Response(
 		new ReadableStream({
@@ -300,6 +301,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				const rawChunks: string[] = [];
 				try {
 					for await (const event of stream) {
+						if (aborted) break;
 						if (
 							event.type === 'content_block_delta' &&
 							event.delta.type === 'text_delta'
@@ -359,6 +361,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					adviceSpan.end();
 					controller.close();
 				}
+			},
+			cancel() {
+				aborted = true;
+				stream.abort();
+				logger.info({ event: 'advice_client_disconnected', userId }, 'Client disconnected, Anthropic stream aborted');
 			}
 		}),
 		{

@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { db } from '$lib/server/db/index.js';
-import { matchPlayers, players } from '$lib/server/db/schema.js';
+import { matches, matchPlayers, players } from '$lib/server/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 interface PlayerUpdate {
@@ -24,6 +24,16 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 
 	if (!matchId || !ratings || !Array.isArray(ratings)) {
 		throw error(400, 'Missing matchId or ratings array');
+	}
+
+	// Verify match exists and belongs to the requesting user
+	const userId = locals.effectiveUserId;
+	const matchWhere = userId
+		? and(eq(matches.matchId, matchId), eq(matches.userId, userId))
+		: eq(matches.matchId, matchId);
+	const [match] = await db.select().from(matches).where(matchWhere);
+	if (!match) {
+		throw error(404, 'Match not found');
 	}
 
 	for (const r of ratings) {
