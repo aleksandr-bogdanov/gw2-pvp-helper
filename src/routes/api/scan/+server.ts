@@ -1,55 +1,21 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { scanScreenshot } from '$lib/server/scan/index.js';
-import { lookupPlayers } from '$lib/server/players.js';
 import { db } from '$lib/server/db/index.js';
-import { userProfiles, trainingSamples } from '$lib/server/db/schema.js';
-import type { PlayerInfo } from '$lib/types.js';
+import { trainingSamples } from '$lib/server/db/schema.js';
 import { createHash } from 'crypto';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
 import sharp from 'sharp';
 import { logger } from '$lib/server/logger.js';
 import { withSpan } from '$lib/server/telemetry.js';
+import {
+	loadProfileNames,
+	identifyUserInTeams,
+	enrichPlayersWithHistory
+} from '$lib/server/scan-utils.js';
 
 const SCREENSHOTS_DIR = process.env.SCREENSHOTS_DIR || resolve('static', 'screenshots');
-
-/** Normalize a name for fuzzy matching: lowercase, strip spaces/punctuation */
-function normalizeName(name: string): string {
-	return name.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-/** Check if two names match, accounting for OCR errors */
-function namesMatch(ocrName: string, profileName: string): boolean {
-	const a = normalizeName(ocrName);
-	const b = normalizeName(profileName);
-	if (!a || !b) return false;
-
-	// Exact match after normalization
-	if (a === b) return true;
-
-	// Levenshtein-based: allow up to ~20% character errors
-	const maxDist = Math.max(1, Math.floor(Math.max(a.length, b.length) * 0.25));
-	return levenshtein(a, b) <= maxDist;
-}
-
-function levenshtein(a: string, b: string): number {
-	const m = a.length;
-	const n = b.length;
-	const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-	for (let i = 0; i <= m; i++) dp[i][0] = i;
-	for (let j = 0; j <= n; j++) dp[0][j] = j;
-	for (let i = 1; i <= m; i++) {
-		for (let j = 1; j <= n; j++) {
-			dp[i][j] = Math.min(
-				dp[i - 1][j] + 1,
-				dp[i][j - 1] + 1,
-				dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
-			);
-		}
-	}
-	return dp[m][n];
-}
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json();
@@ -100,83 +66,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}, { status: 422 });
 	}
 
-	// Load all user profile character names for user identification
-	const profiles = await db.select({
-		characterName: userProfiles.characterName,
-		profession: userProfiles.profession
-	}).from(userProfiles);
+	// Identify user and enrich with history (tenant-scoped)
+	const userId = locals?.effectiveUserId ?? null;
+	const profileNames = await loadProfileNames(userId);
+	const userTeamColor = identifyUserInTeams(
+		result.red_team, result.blue_team, profileNames, result.user_team_color
+	);
 
-	const profileNames = profiles.map((p) => p.characterName);
-
-	// Identify user player by matching against profile names
-	let userTeamColor: 'red' | 'blue' = result.user_team_color;
-	let userFound = false;
-
-	function identifyUser(team: PlayerInfo[], teamColor: 'red' | 'blue') {
-		for (const player of team) {
-			if (userFound) break;
-			for (const profileName of profileNames) {
-				if (namesMatch(player.character_name, profileName)) {
-					player.is_user = true;
-					// Also fix the name to the profile's exact spelling if OCR mangled it
-					if (normalizeName(player.character_name) !== normalizeName(profileName)
-						|| player.character_name !== profileName) {
-						player.character_name = profileName;
-						player.name_confidence = 100;
-					}
-					userTeamColor = teamColor;
-					userFound = true;
-					break;
-				}
-			}
-		}
-	}
-
-	identifyUser(result.red_team, 'red');
-	identifyUser(result.blue_team, 'blue');
-
-	// Enrich with player history
 	const allPlayers = [...result.red_team, ...result.blue_team];
-	const names = allPlayers.map((p: PlayerInfo) => p.character_name);
-	const history = await lookupPlayers(names);
-
-	function enrichPlayer(p: PlayerInfo): PlayerInfo & {
-		times_seen?: number;
-		wins_against?: number;
-		losses_against?: number;
-		last_seen_at?: string | null;
-	} {
-		const h = history.get(p.character_name);
-		if (!h) return { ...p, times_seen: 0, wins_against: 0, losses_against: 0, avg_skill: null, avg_friendly: null, tag: null };
-
-		return {
-			...p,
-			times_seen: h.times_seen,
-			wins_against: h.wins_against,
-			losses_against: h.losses_against,
-			last_seen_at: h.last_seen_at instanceof Date ? h.last_seen_at.toISOString() : (h.last_seen_at ?? null),
-			avg_skill: h.avg_skill,
-			avg_friendly: h.avg_friendly,
-			tag: h.tag,
-			// If scan confidence is low and we have history, use historical spec
-			...(p.spec_source !== 'corrected' &&
-				(p.spec_confidence ?? 1) < 0.58 &&
-				h.spec &&
-				h.spec_source === 'corrected'
-				? {
-						spec_id: h.spec,
-						profession_id: h.profession ?? p.profession_id,
-						role: h.role ?? p.role,
-						spec_source: 'history' as const
-					}
-				: {})
-		};
-	}
+	const enriched = await enrichPlayersWithHistory(allPlayers, userId);
 
 	logger.info({ event: 'scan_complete', screenshotHash, map: result.detected_map?.mapId ?? 'unknown' }, 'Scan completed successfully');
 
 	// Store training sample (fire and forget)
-	const userId = locals?.effectiveUserId ?? null;
 	const allTeamPlayers = [...(result.red_team ?? []), ...(result.blue_team ?? [])];
 	const confidenceScores = allTeamPlayers.map((p, i) => ({
 		slot: i,
@@ -206,8 +108,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	return json({
 		...result,
 		user_team_color: userTeamColor,
-		red_team: result.red_team.map(enrichPlayer),
-		blue_team: result.blue_team.map(enrichPlayer),
+		red_team: result.red_team.map((p) => enriched.get(p.character_name) ?? p),
+		blue_team: result.blue_team.map((p) => enriched.get(p.character_name) ?? p),
 		screenshotHash,
 		screenshotUrl: `/api/screenshots/${screenshotHash}`
 	});
