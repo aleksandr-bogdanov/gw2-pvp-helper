@@ -204,6 +204,10 @@ async function getReferences(): Promise<MinimapReference[]> {
 		refsLoading = loadReferences().then((r) => {
 			references = r;
 			return r;
+		}).catch((err) => {
+			// Clear cached promise so next call retries instead of permanently failing
+			refsLoading = null;
+			throw err;
 		});
 	}
 	return refsLoading;

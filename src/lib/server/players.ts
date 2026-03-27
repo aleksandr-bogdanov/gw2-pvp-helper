@@ -22,9 +22,9 @@ export interface PlayerHistory {
  * Stats + ratings computed from match_players + matches (always consistent).
  * Metadata (tag, nickname, comment) comes from the players table.
  */
-export async function lookupPlayers(names: string[]): Promise<Map<string, PlayerHistory>> {
+export async function lookupPlayers(names: string[], userId: number | null): Promise<Map<string, PlayerHistory>> {
 	const validNames = names.filter((n) => n && !n.startsWith('Unknown Player'));
-	if (validNames.length === 0) return new Map();
+	if (validNames.length === 0 || !userId) return new Map();
 
 	const rows = await db.execute<{
 		character_name: string;
@@ -56,6 +56,7 @@ export async function lookupPlayers(names: string[]): Promise<Map<string, Player
 			JOIN matches m ON mp.match_id = m.match_id
 			WHERE mp.character_name IN (${sql.join(validNames.map(n => sql`${n}`), sql`, `)})
 			  AND mp.is_user = false
+			  AND m.user_id = ${userId}
 			GROUP BY mp.character_name
 		),
 		latest AS (
@@ -65,6 +66,7 @@ export async function lookupPlayers(names: string[]): Promise<Map<string, Player
 			JOIN matches m ON mp.match_id = m.match_id
 			WHERE mp.character_name IN (${sql.join(validNames.map(n => sql`${n}`), sql`, `)})
 			  AND mp.is_user = false
+			  AND m.user_id = ${userId}
 			ORDER BY mp.character_name, m.timestamp DESC
 		)
 		SELECT
@@ -82,6 +84,7 @@ export async function lookupPlayers(names: string[]): Promise<Map<string, Player
 		FROM stats s
 		JOIN latest l ON s.character_name = l.character_name
 		LEFT JOIN players p ON s.character_name = p.character_name
+			AND p.user_id = ${userId}
 	`);
 
 	const map = new Map<string, PlayerHistory>();
