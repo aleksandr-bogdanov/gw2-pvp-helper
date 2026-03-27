@@ -21,6 +21,7 @@
 
 	let playerList = $state<PlayerRecord[]>([]);
 	let loading = $state(true);
+	let error = $state<string | null>(null);
 	let editingRole = $state<string | null>(null);
 	let editingComment = $state<string | null>(null);
 	let ratingPopup = $state<{ player: string; field: 'skill' | 'vibe'; x: number; y: number } | null>(null);
@@ -107,16 +108,26 @@
 		return list;
 	});
 
-	onMount(async () => {
+	async function loadPlayers() {
+		loading = true;
+		error = null;
 		try {
 			const res = await fetch('/api/players?limit=500');
 			if (res.ok) {
 				playerList = await res.json();
+			} else if (res.status === 401) {
+				error = 'Session expired. Please log in again.';
+			} else {
+				error = 'Failed to load players. Check your connection and try again.';
 			}
+		} catch {
+			error = 'Failed to load players. Check your connection and try again.';
 		} finally {
 			loading = false;
 		}
-	});
+	}
+
+	onMount(() => loadPlayers());
 
 	function getSpecIconUrl(specId: string | null, professionId?: string | null): string {
 		if (!specId || !professionId) return '/icons/specs/unknown.png';
@@ -266,6 +277,16 @@
 	{#if loading}
 		<div class="flex items-center justify-center py-20">
 			<span class="inline-block h-5 w-5 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent"></span>
+		</div>
+	{:else if error}
+		<div class="flex flex-col items-center justify-center py-20 text-(--color-text-tertiary)">
+			<p class="text-base text-(--color-red)">{error}</p>
+			<button
+				class="mt-3 rounded-lg px-4 py-2 text-sm text-(--color-accent) border border-(--color-accent)/30 hover:bg-(--color-accent)/10 transition-colors cursor-pointer"
+				onclick={() => loadPlayers()}
+			>
+				Retry
+			</button>
 		</div>
 	{:else if playerList.length === 0}
 		<div class="flex flex-col items-center justify-center py-20 text-(--color-text-tertiary)">

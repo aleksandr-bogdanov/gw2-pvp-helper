@@ -58,6 +58,12 @@
 		window.location.href = '/';
 	}
 
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && userMenuOpen) {
+			userMenuOpen = false;
+		}
+	}
+
 	let scanning = $state(false);
 	let scanError = $state('');
 	let scanStep = $state(0);
@@ -180,12 +186,12 @@
 	}
 </script>
 
-<svelte:window onpaste={handlePaste} ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleDrop} />
+<svelte:window onpaste={handlePaste} ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleDrop} onkeydown={handleKeydown} />
 
 <LoginGate>
 <div class="min-h-screen bg-(--color-bg)">
 	<!-- Navbar -->
-	<nav class="glass sticky top-0 z-40 border-b border-(--color-border) shadow-sm">
+	<nav aria-label="Main navigation" class="glass sticky top-0 z-40 border-b border-(--color-border) shadow-sm">
 		<div class="mx-auto max-w-3xl flex items-center justify-between px-6 py-3">
 			<a href="/" class="text-base font-semibold tracking-tight text-(--color-text) hover:text-(--color-accent) transition-colors">
 				GW2 PvP Helper
@@ -199,6 +205,7 @@
 				] as link}
 					<a
 						href={link.href}
+						aria-current={page.url.pathname.startsWith(link.href) ? 'page' : undefined}
 						class="text-sm transition-colors {page.url.pathname.startsWith(link.href)
 							? 'text-(--color-accent) font-medium'
 							: 'text-(--color-text-secondary) hover:text-(--color-text)'}"
@@ -219,6 +226,8 @@
 					<div class="relative">
 						<button
 							onclick={() => { userMenuOpen = !userMenuOpen; }}
+							aria-expanded={userMenuOpen}
+							aria-haspopup="true"
 							class="flex items-center gap-1.5 rounded-md border border-(--color-border) bg-(--color-surface)/60 px-2.5 py-1 text-xs font-medium text-(--color-text-secondary) transition-all hover:bg-(--color-surface-hover) hover:text-(--color-text) cursor-pointer"
 						>
 							{currentUsername}
@@ -229,9 +238,10 @@
 							<!-- Backdrop to close menu -->
 							<button class="fixed inset-0 z-40 cursor-default" onclick={() => { userMenuOpen = false; }} tabindex="-1" aria-label="Close menu"></button>
 
-							<div class="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-(--color-border) bg-(--color-surface) py-1 shadow-lg">
+							<div role="menu" class="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-(--color-border) bg-(--color-surface) py-1 shadow-lg">
 								<a
 									href="/settings"
+									role="menuitem"
 									class="block px-3 py-2 text-xs text-(--color-text-secondary) hover:bg-(--color-surface-hover) hover:text-(--color-text) transition-colors"
 									onclick={() => { userMenuOpen = false; }}
 								>
@@ -240,15 +250,17 @@
 								{#if isAdmin}
 									<a
 										href="/admin"
+										role="menuitem"
 										class="block px-3 py-2 text-xs text-(--color-text-secondary) hover:bg-(--color-surface-hover) hover:text-(--color-text) transition-colors"
 										onclick={() => { userMenuOpen = false; }}
 									>
 										Admin
 									</a>
 								{/if}
-								<div class="my-1 border-t border-(--color-border)"></div>
+								<div role="separator" class="my-1 border-t border-(--color-border)"></div>
 								<button
 									onclick={handleLogout}
+									role="menuitem"
 									class="w-full text-left px-3 py-2 text-xs text-(--color-red) hover:bg-(--color-surface-hover) transition-colors cursor-pointer"
 								>
 									Log out

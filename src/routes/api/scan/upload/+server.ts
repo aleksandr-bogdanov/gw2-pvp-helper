@@ -11,7 +11,7 @@ import { db } from '$lib/server/db/index.js';
 import { trainingSamples } from '$lib/server/db/schema.js';
 import type { ScanResult } from '$lib/types.js';
 import { createHash } from 'crypto';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, renameSync, existsSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
 import { logger } from '$lib/server/logger.js';
 import {
@@ -21,6 +21,7 @@ import {
 } from '$lib/server/scan-utils.js';
 
 const SCREENSHOTS_DIR = process.env.SCREENSHOTS_DIR || resolve('static', 'screenshots');
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json();
@@ -34,13 +35,32 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		throw error(400, 'Missing image or scanResult');
 	}
 
-	// Save screenshot
+	// Decode and validate
 	const imageBuffer = Buffer.from(image, 'base64');
+
+	if (imageBuffer.length > MAX_IMAGE_BYTES) {
+		throw error(400, 'Image exceeds 8 MB limit');
+	}
+
+	// Validate JPEG magic bytes (0xFF 0xD8)
+	if (imageBuffer.length < 2 || imageBuffer[0] !== 0xff || imageBuffer[1] !== 0xd8) {
+		throw error(400, 'Invalid image: not a JPEG');
+	}
+
+	// Atomic file write: write to .tmp then rename to final path
 	const screenshotHash = createHash('sha256').update(imageBuffer).digest('hex').slice(0, 16);
 	if (!existsSync(SCREENSHOTS_DIR)) mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 	const screenshotPath = resolve(SCREENSHOTS_DIR, `${screenshotHash}.jpg`);
+
 	if (!existsSync(screenshotPath)) {
-		writeFileSync(screenshotPath, imageBuffer);
+		const tmpPath = `${screenshotPath}.tmp`;
+		try {
+			writeFileSync(tmpPath, imageBuffer);
+			renameSync(tmpPath, screenshotPath);
+		} catch (e) {
+			logger.error({ event: 'screenshot_write_failed', screenshotHash, error: e instanceof Error ? e.message : String(e) }, 'Failed to write screenshot');
+			throw error(500, 'Failed to save screenshot');
+		}
 	}
 
 	// Identify user and enrich with history (tenant-scoped)
@@ -61,23 +81,25 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		name_confidence: p.name_confidence ?? null
 	}));
 
-	db.insert(trainingSamples).values({
-		userId,
-		screenshotHash,
-		screenshotPath,
-		resolution: resolution || null,
-		uiSize: null,
-		deviceInfo: null,
-		scanResult: {
-			red_team: scanResult.red_team,
-			blue_team: scanResult.blue_team,
-			map_detection: scanResult.detected_map,
-		},
-		confidenceScores,
-		anchorPosition: null
-	}).onConflictDoNothing().catch((e) => {
+	try {
+		await db.insert(trainingSamples).values({
+			userId,
+			screenshotHash,
+			screenshotPath,
+			resolution: resolution || null,
+			uiSize: null,
+			deviceInfo: null,
+			scanResult: {
+				red_team: scanResult.red_team,
+				blue_team: scanResult.blue_team,
+				map_detection: scanResult.detected_map,
+			},
+			confidenceScores,
+			anchorPosition: null
+		}).onConflictDoNothing();
+	} catch (e) {
 		logger.warn({ event: 'training_sample_failed', screenshotHash, error: e instanceof Error ? e.message : String(e) }, 'Failed to save training sample');
-	});
+	}
 
 	logger.info({ event: 'client_scan_upload', screenshotHash, source: 'client' }, 'Client-side scan uploaded');
 

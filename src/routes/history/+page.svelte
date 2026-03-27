@@ -18,6 +18,7 @@
 	let currentPage = $state(0);
 	let loading = $state(true);
 	let loadingMore = $state(false);
+	let error = $state<string | null>(null);
 	let zoomedScreenshot = $state<string | null>(null);
 	let deletingMatch = $state<string | null>(null);
 	let updatingResult = $state<string | null>(null);
@@ -34,6 +35,7 @@
 		const isInitial = matchHistory.length === 0;
 		if (isInitial) loading = true;
 		else loadingMore = true;
+		error = null;
 
 		try {
 			const res = await fetch(`/api/match?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`);
@@ -42,7 +44,13 @@
 				matchHistory = data.matches ?? data;
 				totalMatches = data.total ?? matchHistory.length;
 				currentPage = page;
+			} else if (res.status === 401) {
+				error = 'Session expired. Please log in again.';
+			} else {
+				error = 'Failed to load match history. Check your connection and try again.';
 			}
+		} catch {
+			error = 'Failed to load match history. Check your connection and try again.';
 		} finally {
 			loading = false;
 			loadingMore = false;
@@ -455,6 +463,16 @@
 	{#if loading}
 		<div class="flex items-center justify-center py-20">
 			<span class="inline-block h-5 w-5 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent"></span>
+		</div>
+	{:else if error}
+		<div class="flex flex-col items-center justify-center py-20 text-(--color-text-tertiary)">
+			<p class="text-base text-(--color-red)">{error}</p>
+			<button
+				class="mt-3 rounded-lg px-4 py-2 text-sm text-(--color-accent) border border-(--color-accent)/30 hover:bg-(--color-accent)/10 transition-colors cursor-pointer"
+				onclick={() => loadPage(currentPage)}
+			>
+				Retry
+			</button>
 		</div>
 	{:else if matchHistory.length === 0}
 		<div class="flex flex-col items-center justify-center py-20 text-(--color-text-tertiary)">
