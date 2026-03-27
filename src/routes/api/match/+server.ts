@@ -66,11 +66,13 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		playersByMatch.set(mp.matchId, list);
 	}
 
-	// Fetch tags for all players across all matches
+	// Fetch tags for all players — scoped to current user's metadata (multi-tenant)
 	const allNames = [...new Set(allMatchPlayers.map(mp => mp.characterName).filter((n): n is string => !!n))];
-	const playerMeta = allNames.length > 0
-		? await db.select({ characterName: players.characterName, tag: players.tag }).from(players).where(inArray(players.characterName, allNames))
-		: [];
+	const playerMeta = allNames.length > 0 && userId
+		? await db.select({ characterName: players.characterName, tag: players.tag }).from(players).where(and(inArray(players.characterName, allNames), eq(players.userId, userId)))
+		: allNames.length > 0
+			? await db.select({ characterName: players.characterName, tag: players.tag }).from(players).where(inArray(players.characterName, allNames))
+			: [];
 	const tagMap = new Map(playerMeta.map(p => [p.characterName, p.tag]));
 
 	const result = matchList.map((m) => ({
@@ -217,7 +219,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		await db
 			.update(matches)
 			.set(updates)
-			.where(eq(matches.matchId, matchId));
+			.where(whereClause);
 	}
 
 	// Learn minimap reference when map is set/corrected
@@ -285,9 +287,9 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 		throw error(404, 'Match not found');
 	}
 
-	// Delete match players first (FK constraint), then the match
+	// Delete match players first (FK constraint), then the match (ownership-scoped)
 	await db.delete(matchPlayers).where(eq(matchPlayers.matchId, matchId));
-	await db.delete(matches).where(eq(matches.matchId, matchId));
+	await db.delete(matches).where(deleteWhere);
 
 	// Clean up screenshot file (only if no other match references same hash)
 	if (match.screenshotHash) {
