@@ -102,6 +102,14 @@ export async function decrementProfileGens(userId: number): Promise<number> {
 	return updated?.remaining ?? -1;
 }
 
+/** Restore a profile gen (rollback on API failure) */
+export async function restoreProfileGen(userId: number): Promise<void> {
+	await db
+		.update(users)
+		.set({ profileGensRemaining: sql`${users.profileGensRemaining} + 1` })
+		.where(eq(users.id, userId));
+}
+
 /** Validate an Anthropic API key by making a minimal test call */
 export async function validateAnthropicKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
 	try {

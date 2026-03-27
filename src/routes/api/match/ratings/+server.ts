@@ -21,13 +21,13 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		matchId: string;
 		ratings: PlayerUpdate[];
 	};
+	const userId = locals.effectiveUserId;
 
 	if (!matchId || !ratings || !Array.isArray(ratings)) {
 		throw error(400, 'Missing matchId or ratings array');
 	}
 
 	// Verify match exists and belongs to the requesting user
-	const userId = locals.effectiveUserId;
 	const matchWhere = userId
 		? and(eq(matches.matchId, matchId), eq(matches.userId, userId))
 		: eq(matches.matchId, matchId);
@@ -75,9 +75,8 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Update tag in players metadata table (upsert) — scoped to user
-		if (r.tag !== undefined && locals.effectiveUserId) {
+		if (r.tag !== undefined && userId) {
 			const name = r.newCharacterName ?? r.characterName;
-			const userId = locals.effectiveUserId;
 			const [existing] = await db
 				.select()
 				.from(players)
@@ -99,12 +98,13 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 // GET: Get ratings for a specific match (tenant-scoped)
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const matchId = url.searchParams.get('matchId');
+	const userId = locals.effectiveUserId;
+
 	if (!matchId) {
 		throw error(400, 'Missing matchId');
 	}
 
 	// Verify match belongs to the requesting user
-	const userId = locals.effectiveUserId;
 	if (userId) {
 		const [match] = await db.select({ matchId: matches.matchId }).from(matches)
 			.where(and(eq(matches.matchId, matchId), eq(matches.userId, userId)));

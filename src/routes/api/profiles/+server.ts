@@ -8,9 +8,8 @@ import { eq, and, count as countFn } from 'drizzle-orm';
 export const GET: RequestHandler = async ({ locals }) => {
 	const userId = locals.effectiveUserId;
 	if (!userId) {
-		// Backward compat: return all if no auth (shouldn't happen with auth guard, but safe)
-		const profiles = await db.select().from(userProfiles).orderBy(userProfiles.createdAt);
-		return json(profiles);
+		// Defense-in-depth: return empty if no auth (auth middleware should prevent this)
+		return json([]);
 	}
 
 	const profiles = await db
