@@ -207,6 +207,10 @@ async function getReferences(): Promise<ReferenceIcon[]> {
 		referencesLoading = loadReferenceIcons().then((icons) => {
 			referenceIcons = icons;
 			return icons;
+		}).catch((err) => {
+			// Clear cached promise so next call retries instead of permanently failing
+			referencesLoading = null;
+			throw err;
 		});
 	}
 	return referencesLoading;

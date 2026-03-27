@@ -22,16 +22,9 @@ export interface PlayerHistory {
  * Stats + ratings computed from match_players + matches (always consistent).
  * Metadata (tag, nickname, comment) comes from the players table.
  */
-export async function lookupPlayers(
-	names: string[],
-	userId?: number | null
-): Promise<Map<string, PlayerHistory>> {
+export async function lookupPlayers(names: string[], userId: number | null): Promise<Map<string, PlayerHistory>> {
 	const validNames = names.filter((n) => n && !n.startsWith('Unknown Player'));
-	if (validNames.length === 0) return new Map();
-
-	// Build user-scoped filters for multi-tenant isolation
-	const userFilter = userId ? sql`AND m.user_id = ${userId}` : sql``;
-	const playerUserFilter = userId ? sql`AND p.user_id = ${userId}` : sql``;
+	if (validNames.length === 0 || !userId) return new Map();
 
 	const rows = await db.execute<{
 		character_name: string;
@@ -61,9 +54,9 @@ export async function lookupPlayers(
 				ROUND(AVG(mp.rating_friendly)::numeric, 1) AS avg_friendly
 			FROM match_players mp
 			JOIN matches m ON mp.match_id = m.match_id
-			WHERE mp.character_name IN (${sql.join(validNames.map((n) => sql`${n}`), sql`, `)})
+			WHERE mp.character_name IN (${sql.join(validNames.map(n => sql`${n}`), sql`, `)})
 			  AND mp.is_user = false
-			  ${userFilter}
+			  AND m.user_id = ${userId}
 			GROUP BY mp.character_name
 		),
 		latest AS (
@@ -71,9 +64,9 @@ export async function lookupPlayers(
 				mp.character_name, mp.profession, mp.spec, mp.role
 			FROM match_players mp
 			JOIN matches m ON mp.match_id = m.match_id
-			WHERE mp.character_name IN (${sql.join(validNames.map((n) => sql`${n}`), sql`, `)})
+			WHERE mp.character_name IN (${sql.join(validNames.map(n => sql`${n}`), sql`, `)})
 			  AND mp.is_user = false
-			  ${userFilter}
+			  AND m.user_id = ${userId}
 			ORDER BY mp.character_name, m.timestamp DESC
 		)
 		SELECT
@@ -91,7 +84,7 @@ export async function lookupPlayers(
 		FROM stats s
 		JOIN latest l ON s.character_name = l.character_name
 		LEFT JOIN players p ON s.character_name = p.character_name
-			${playerUserFilter}
+			AND p.user_id = ${userId}
 	`);
 
 	const map = new Map<string, PlayerHistory>();

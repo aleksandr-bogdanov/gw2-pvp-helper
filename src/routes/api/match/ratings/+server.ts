@@ -27,15 +27,13 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		throw error(400, 'Missing matchId or ratings array');
 	}
 
-	// Verify match ownership (multi-tenant: user can only update their own matches)
-	if (userId) {
-		const [match] = await db
-			.select({ matchId: matches.matchId })
-			.from(matches)
-			.where(and(eq(matches.matchId, matchId), eq(matches.userId, userId)));
-		if (!match) {
-			throw error(404, 'Match not found');
-		}
+	// Verify match exists and belongs to the requesting user
+	const matchWhere = userId
+		? and(eq(matches.matchId, matchId), eq(matches.userId, userId))
+		: eq(matches.matchId, matchId);
+	const [match] = await db.select().from(matches).where(matchWhere);
+	if (!match) {
+		throw error(404, 'Match not found');
 	}
 
 	for (const r of ratings) {
@@ -97,7 +95,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 	return json({ success: true });
 };
 
-// GET: Get ratings for a specific match (scoped to user's own matches)
+// GET: Get ratings for a specific match (tenant-scoped)
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const matchId = url.searchParams.get('matchId');
 	const userId = locals.effectiveUserId;
@@ -106,11 +104,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		throw error(400, 'Missing matchId');
 	}
 
-	// Verify match ownership (multi-tenant)
+	// Verify match belongs to the requesting user
 	if (userId) {
-		const [match] = await db
-			.select({ matchId: matches.matchId })
-			.from(matches)
+		const [match] = await db.select({ matchId: matches.matchId }).from(matches)
 			.where(and(eq(matches.matchId, matchId), eq(matches.userId, userId)));
 		if (!match) {
 			throw error(404, 'Match not found');

@@ -78,7 +78,9 @@ export async function loginUser(
 	return { token, userId: user.id, username: user.username, role: user.role };
 }
 
-/** Create a user + session, mark invite code as used. Returns session token. */
+/** Create a user + session, mark invite code as used. Returns session token.
+ *  Wrapped in a transaction to prevent race conditions where the same invite
+ *  code could create multiple users. */
 export async function createUser(
 	username: string,
 	inviteCode: string,
@@ -87,35 +89,38 @@ export async function createUser(
 	password?: string
 ): Promise<{ token: string; userId: number }> {
 	const passwordHash = password ? await hashPassword(password) : null;
-
-	const [user] = await db
-		.insert(users)
-		.values({
-			username,
-			passwordHash,
-			inviteCodeUsed: inviteCode,
-			deviceInfo: deviceInfo ?? null,
-			consentGivenAt: consentGiven ? new Date() : null
-		})
-		.returning();
-
-	// Mark invite code as used
-	await db.insert(usedInviteCodes).values({
-		code: inviteCode,
-		userId: user.id
-	});
-
-	// Create session
 	const token = randomUUID();
 	const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 
-	await db.insert(sessions).values({
-		token,
-		userId: user.id,
-		expiresAt
+	const result = await db.transaction(async (tx) => {
+		const [user] = await tx
+			.insert(users)
+			.values({
+				username,
+				passwordHash,
+				inviteCodeUsed: inviteCode,
+				deviceInfo: deviceInfo ?? null,
+				consentGivenAt: consentGiven ? new Date() : null
+			})
+			.returning();
+
+		// Mark invite code as used
+		await tx.insert(usedInviteCodes).values({
+			code: inviteCode,
+			userId: user.id
+		});
+
+		// Create session
+		await tx.insert(sessions).values({
+			token,
+			userId: user.id,
+			expiresAt
+		});
+
+		return { token, userId: user.id };
 	});
 
-	return { token, userId: user.id };
+	return result;
 }
 
 /** Resolve a session token to a user. Returns null if expired or not found. */

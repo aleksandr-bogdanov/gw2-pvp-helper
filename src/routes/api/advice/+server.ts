@@ -232,8 +232,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			activeClient = new Anthropic({ apiKey: usage.apiKey });
 			activeModel = usage.model ?? 'claude-sonnet-4-6';
 		} else {
-			// Decrement counter for free-tier users (before streaming, to prevent races)
-			await decrementAdviceCalls(userId);
+			// Atomic decrement — returns -1 if another request already consumed the last call
+			const remaining = await decrementAdviceCalls(userId);
+			if (remaining < 0) {
+				logger.warn({ event: 'rate_limited_race', userId, type: 'advice' }, 'Concurrent request lost race for last advice call');
+				return json(
+					{ error: 'Free advice calls exhausted', remaining: 0, byok_available: true },
+					{ status: 429 }
+				);
+			}
 		}
 	}
 
@@ -292,6 +299,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	});
 
 	const encoder = new TextEncoder();
+	let aborted = false;
 
 	return new Response(
 		new ReadableStream({
@@ -300,6 +308,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				const rawChunks: string[] = [];
 				try {
 					for await (const event of stream) {
+						if (aborted) break;
 						if (
 							event.type === 'content_block_delta' &&
 							event.delta.type === 'text_delta'
@@ -359,6 +368,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					adviceSpan.end();
 					controller.close();
 				}
+			},
+			cancel() {
+				aborted = true;
+				stream.abort();
+				logger.info({ event: 'advice_client_disconnected', userId }, 'Client disconnected, Anthropic stream aborted');
 			}
 		}),
 		{

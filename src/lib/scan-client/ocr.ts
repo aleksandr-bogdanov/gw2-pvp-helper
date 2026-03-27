@@ -61,6 +61,11 @@ async function getOCR(): Promise<any> {
 		ocrLoading = initOCR().then((w) => {
 			ocrWorker = w;
 			return w;
+		}).catch((err) => {
+			// Clear the cached promise so the next call retries initialization
+			// instead of returning the same rejected promise forever.
+			ocrLoading = null;
+			throw err;
 		});
 	}
 	return ocrLoading;

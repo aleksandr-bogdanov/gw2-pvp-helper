@@ -44,14 +44,18 @@ export async function checkAdviceUsage(userId: number): Promise<UsageCheckResult
 	return { allowed: false, isByok: false, remaining: 0 };
 }
 
-/** Decrement advice call counter for free-tier users */
+/**
+ * Atomically decrement advice call counter for free-tier users.
+ * Uses WHERE remaining > 0 to prevent going negative under concurrent requests.
+ * Returns the new remaining count, or -1 if the decrement was rejected (already at 0).
+ */
 export async function decrementAdviceCalls(userId: number): Promise<number> {
 	const [updated] = await db
 		.update(users)
 		.set({ adviceCallsRemaining: sql`${users.adviceCallsRemaining} - 1` })
-		.where(eq(users.id, userId))
+		.where(sql`${users.id} = ${userId} AND ${users.adviceCallsRemaining} > 0`)
 		.returning({ remaining: users.adviceCallsRemaining });
-	return updated?.remaining ?? 0;
+	return updated?.remaining ?? -1;
 }
 
 /** Check if user can generate a profile */
@@ -84,14 +88,18 @@ export async function checkProfileUsage(userId: number): Promise<UsageCheckResul
 	return { allowed: false, isByok: false, remaining: 0 };
 }
 
-/** Decrement profile gen counter for free-tier users */
+/**
+ * Atomically decrement profile gen counter for free-tier users.
+ * Uses WHERE remaining > 0 to prevent going negative under concurrent requests.
+ * Returns the new remaining count, or -1 if the decrement was rejected (already at 0).
+ */
 export async function decrementProfileGens(userId: number): Promise<number> {
 	const [updated] = await db
 		.update(users)
 		.set({ profileGensRemaining: sql`${users.profileGensRemaining} - 1` })
-		.where(eq(users.id, userId))
+		.where(sql`${users.id} = ${userId} AND ${users.profileGensRemaining} > 0`)
 		.returning({ remaining: users.profileGensRemaining });
-	return updated?.remaining ?? 0;
+	return updated?.remaining ?? -1;
 }
 
 /** Restore a profile gen (rollback on API failure) */
