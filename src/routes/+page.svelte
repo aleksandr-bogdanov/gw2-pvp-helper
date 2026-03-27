@@ -3,8 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { specs } from '$lib/game-data.js';
 
-	let dragOver = $state(false);
-
 	interface ActiveProfile {
 		id: number;
 		characterName: string;
@@ -52,40 +50,6 @@
 		}
 	}
 
-	function handleDragOver(e: DragEvent) {
-		e.preventDefault();
-		e.dataTransfer!.dropEffect = 'copy';
-		dragOver = true;
-	}
-
-	function handleDragLeave() {
-		dragOver = false;
-	}
-
-	async function handleDrop(e: DragEvent) {
-		e.preventDefault();
-		dragOver = false;
-		const file = e.dataTransfer?.files[0];
-		if (!file || !file.type.startsWith('image/')) return;
-
-		const buffer = await file.arrayBuffer();
-		const base64 = btoa(
-			new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-		);
-
-		const res = await fetch('/api/scan', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ image: base64, mediaType: file.type })
-		});
-
-		if (res.ok) {
-			const result = await res.json();
-			sessionStorage.setItem('scanResult', JSON.stringify(result));
-			goto('/match/new');
-		}
-	}
-
 	function getSpecLabel(profId: string, specId: string): string {
 		const spec = specs.professions[profId]?.specs.find(s => s.id === specId);
 		return spec?.label ?? specId;
@@ -98,19 +62,13 @@
 
 <div
 	class="flex min-h-[calc(100vh-57px)] flex-col"
-	ondragover={handleDragOver}
-	ondragleave={handleDragLeave}
-	ondrop={handleDrop}
 	role="application"
 >
 	<!-- Center content -->
 	<div class="flex flex-1 flex-col items-center justify-center gap-5 pb-24">
 		<!-- Paste card -->
 		<div
-			class="flex w-full max-w-md flex-col items-center gap-5 rounded-xl border bg-(--color-surface) px-12 py-14 transition-all
-				{dragOver
-					? 'border-(--color-accent) bg-(--color-accent)/5'
-					: 'border-(--color-border)'}"
+			class="flex w-full max-w-md flex-col items-center gap-5 rounded-xl border border-(--color-border) bg-(--color-surface) px-12 py-14 transition-all"
 		>
 			<div class="flex flex-col items-center gap-3">
 				<kbd

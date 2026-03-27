@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { ScanResult, PlayerInfo } from '$lib/types.js';
@@ -74,10 +74,20 @@
 	let streamBabysit = $state('');
 	let streamPositioning = $state('');
 
+	// Abort controller for SSE streaming
+	let adviceAbortController: AbortController | null = null;
+
 	// Profile switch notice
 	let profileSwitchNotice = $state('');
 	let userProfession = $state('');
 	let recordingResult = $state(false);
+
+	// Cleanup timers and abort on navigation/destroy
+	onDestroy(() => {
+		if (adviceTimer) clearInterval(adviceTimer);
+		if (adviceSaveTimer) clearTimeout(adviceSaveTimer);
+		if (adviceAbortController) adviceAbortController.abort();
+	});
 
 	// --- Confidence thresholds ---
 	const SPEC_HIGH = 0.62;
@@ -761,12 +771,25 @@
 	// --- Advice ---
 	let rawAdviceText = '';
 
+	function cancelAdvice() {
+		if (adviceAbortController) {
+			adviceAbortController.abort();
+			adviceAbortController = null;
+		}
+	}
+
 	async function getAdvice() {
+		// Cancel any in-flight request
+		cancelAdvice();
+
 		adviceLoading = true;
 		adviceError = '';
 		adviceElapsed = 0;
 		adviceTimer = setInterval(() => { adviceElapsed++; }, 1000);
 		rawAdviceText = '';
+
+		// Create abort controller for this request
+		adviceAbortController = new AbortController();
 
 		// Initialize streaming advice arrays
 		streamEnemyAdvice = enemyTeam.map(() => ({ threat: '', advice: '', dont_hit: undefined }));
@@ -796,7 +819,8 @@
 					enemyTeam: enemyTeam,
 					map: mapInfo,
 					userTeamColor
-				})
+				}),
+				signal: adviceAbortController?.signal
 			});
 
 			if (!res.ok) {
@@ -850,11 +874,16 @@
 				match = buildMatchRecord(null);
 			}
 		} catch (err) {
-			adviceError = err instanceof Error ? err.message : 'Advice failed';
+			if (err instanceof DOMException && err.name === 'AbortError') {
+				// User cancelled — not an error
+			} else {
+				adviceError = err instanceof Error ? err.message : 'Advice failed';
+			}
 		} finally {
 			if (adviceTimer) clearInterval(adviceTimer);
 			adviceTimer = null;
 			adviceLoading = false;
+			adviceAbortController = null;
 		}
 	}
 
@@ -1359,6 +1388,14 @@
 					Get Advice
 				{/if}
 			</button>
+			{#if adviceLoading}
+				<button
+					class="mt-2 w-full rounded-lg border border-(--color-border) py-1.5 text-xs text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-surface-hover) transition-colors cursor-pointer"
+					onclick={cancelAdvice}
+				>
+					Cancel
+				</button>
+			{/if}
 			{#if adviceError}
 				<p class="mt-2 text-xs text-(--color-red)">{adviceError}</p>
 			{/if}
