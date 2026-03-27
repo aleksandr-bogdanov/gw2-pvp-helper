@@ -232,8 +232,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			activeClient = new Anthropic({ apiKey: usage.apiKey });
 			activeModel = usage.model ?? 'claude-sonnet-4-6';
 		} else {
-			// Decrement counter for free-tier users (before streaming, to prevent races)
-			await decrementAdviceCalls(userId);
+			// Atomic decrement — returns -1 if another request already consumed the last call
+			const remaining = await decrementAdviceCalls(userId);
+			if (remaining < 0) {
+				logger.warn({ event: 'rate_limited_race', userId, type: 'advice' }, 'Concurrent request lost race for last advice call');
+				return json(
+					{ error: 'Free advice calls exhausted', remaining: 0, byok_available: true },
+					{ status: 429 }
+				);
+			}
 		}
 	}
 
