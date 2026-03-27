@@ -73,6 +73,10 @@ async function getTemplates(): Promise<Template[]> {
 		templatesLoading = loadTemplates().then((t) => {
 			templates = t;
 			return t;
+		}).catch((err) => {
+			// Clear cached promise so next call retries instead of permanently failing
+			templatesLoading = null;
+			throw err;
 		});
 	}
 	return templatesLoading;

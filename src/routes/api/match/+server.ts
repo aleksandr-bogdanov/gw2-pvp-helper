@@ -109,6 +109,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 	}
 
+
 	// Dedup by screenshot hash — return existing match + corrected players (tenant-scoped)
 	if (screenshotHash && userId) {
 		const [existing] = await db

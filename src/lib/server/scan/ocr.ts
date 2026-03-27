@@ -30,7 +30,12 @@ let schedulerInit: Promise<Tesseract.Scheduler> | null = null;
 async function getScheduler(): Promise<Tesseract.Scheduler> {
 	if (scheduler) return scheduler;
 	if (!schedulerInit) {
-		schedulerInit = initScheduler();
+		schedulerInit = initScheduler().catch((err) => {
+			// Clear the cached promise so the next call retries initialization
+			// instead of returning the same rejected promise forever.
+			schedulerInit = null;
+			throw err;
+		});
 	}
 	return schedulerInit;
 }

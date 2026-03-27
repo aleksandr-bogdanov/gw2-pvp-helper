@@ -96,7 +96,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 	return json({ success: true });
 };
 
-// GET: Get ratings for a specific match
+// GET: Get ratings for a specific match (tenant-scoped)
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const matchId = url.searchParams.get('matchId');
 	if (!matchId) {
