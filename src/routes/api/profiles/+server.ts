@@ -81,7 +81,10 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 			await db.update(userProfiles).set({ isActive: false });
 			await db.update(userProfiles).set({ isActive: true }).where(eq(userProfiles.id, id));
 		}
-		const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.id, id));
+		const readWhere = userId
+			? and(eq(userProfiles.id, id), eq(userProfiles.userId, userId))
+			: eq(userProfiles.id, id);
+		const [profile] = await db.select().from(userProfiles).where(readWhere);
 		return json(profile);
 	}
 
