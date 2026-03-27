@@ -98,9 +98,20 @@ export function buildNameFragments(match: MatchRecord): Set<string> {
 	return fragments;
 }
 
+/** Escape HTML entities to prevent XSS when rendering via {@html} */
+export function escapeHtml(text: string): string {
+	return text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
 export function splitSentences(text: string): string {
-	const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z"'"(])/).map(s => s.trim()).filter(Boolean);
-	if (sentences.length <= 1) return `• ${text}`;
+	const safe = escapeHtml(text);
+	const sentences = safe.split(/(?<=[.!?])\s+(?=[A-Z"'"(])/).map(s => s.trim()).filter(Boolean);
+	if (sentences.length <= 1) return `• ${safe}`;
 	return '<ul class="list-disc list-inside space-y-0.5">' + sentences.map(s => `<li>${s}</li>`).join('') + '</ul>';
 }
 
@@ -109,7 +120,7 @@ export function highlightNames(text: string, fragments: Set<string>): string {
 	result = result.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-(--color-text)">$1</strong>');
 	if (fragments.size === 0) return result;
 	const sorted = [...fragments].sort((a, b) => b.length - a.length);
-	const escaped = sorted.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+	const escaped = sorted.map(n => escapeHtml(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 	const pattern = new RegExp(`(?<![<\\w])\\b(${escaped.join('|')})\\b(?![\\w>])`, 'gi');
 	return result.replace(pattern, '<strong class="font-semibold text-(--color-text)">$1</strong>');
 }

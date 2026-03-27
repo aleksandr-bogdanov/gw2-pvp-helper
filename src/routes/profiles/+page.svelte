@@ -18,6 +18,7 @@
 
 	let profiles = $state<Profile[]>([]);
 	let loading = $state(true);
+	let error = $state<string | null>(null);
 	let deleteConfirm = $state<number | null>(null);
 
 	onMount(async () => {
@@ -26,11 +27,21 @@
 
 	async function loadProfiles() {
 		loading = true;
-		const res = await fetch('/api/profiles');
-		if (res.ok) {
-			profiles = await res.json();
+		error = null;
+		try {
+			const res = await fetch('/api/profiles');
+			if (res.ok) {
+				profiles = await res.json();
+			} else if (res.status === 401) {
+				error = 'Session expired. Please log in again.';
+			} else {
+				error = 'Failed to load profiles. Check your connection and try again.';
+			}
+		} catch {
+			error = 'Failed to load profiles. Check your connection and try again.';
+		} finally {
+			loading = false;
 		}
-		loading = false;
 	}
 
 	async function setActive(id: number) {
@@ -70,6 +81,16 @@
 	{#if loading}
 		<div class="flex justify-center py-12">
 			<div class="h-6 w-6 animate-spin rounded-full border-2 border-(--color-accent) border-t-transparent"></div>
+		</div>
+	{:else if error}
+		<div class="flex flex-col items-center justify-center py-20 text-(--color-text-tertiary)">
+			<p class="text-base text-(--color-red)">{error}</p>
+			<button
+				class="mt-3 rounded-lg px-4 py-2 text-sm text-(--color-accent) border border-(--color-accent)/30 hover:bg-(--color-accent)/10 transition-colors cursor-pointer"
+				onclick={() => loadProfiles()}
+			>
+				Retry
+			</button>
 		</div>
 	{:else if profiles.length === 0}
 		<div class="rounded-xl border border-(--color-border) bg-(--color-surface) p-6 text-center">

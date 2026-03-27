@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
 	let apiKeyInput = $state('');
 	let hasKey = $state(false);
 	let selectedModel = $state('claude-sonnet-4-6');
@@ -8,6 +10,10 @@
 	let testing = $state(false);
 	let message = $state('');
 	let messageType = $state<'success' | 'error'>('success');
+
+	onMount(() => {
+		loadState();
+	});
 
 	async function loadState() {
 		try {
@@ -29,10 +35,6 @@
 			// silently fail
 		}
 	}
-
-	$effect(() => {
-		loadState();
-	});
 
 	function showMessage(text: string, type: 'success' | 'error') {
 		message = text;
@@ -116,71 +118,76 @@
 </svelte:head>
 
 <div class="mx-auto max-w-2xl p-6">
-	<h1 class="mb-6 text-2xl font-bold text-white">Settings</h1>
+	<h1 class="mb-6 text-2xl font-bold text-(--color-text)">Settings</h1>
 
 	{#if message}
 		<div
+			role="alert"
+			aria-live="assertive"
 			class="mb-4 rounded px-4 py-2 text-sm {messageType === 'success'
-				? 'bg-green-900/50 text-green-300'
-				: 'bg-red-900/50 text-red-300'}"
+				? 'bg-(--color-green)/10 text-(--color-green)'
+				: 'bg-(--color-red)/10 text-(--color-red)'}"
 		>
 			{message}
 		</div>
 	{/if}
 
 	<!-- Usage Stats -->
-	<section class="mb-8 rounded-lg bg-zinc-800/50 p-5">
-		<h2 class="mb-3 text-lg font-semibold text-zinc-200">Usage</h2>
+	<section class="mb-8 rounded-lg bg-(--color-surface)/50 p-5" aria-labelledby="usage-heading">
+		<h2 id="usage-heading" class="mb-3 text-lg font-semibold text-(--color-text-secondary)">Usage</h2>
 		<div class="grid grid-cols-2 gap-4 text-sm">
 			<div>
-				<span class="text-zinc-400">Advice calls:</span>
+				<span class="text-(--color-text-tertiary)">Advice calls:</span>
 				{#if hasKey}
-					<span class="ml-2 text-green-400">Unlimited (BYOK)</span>
+					<span class="ml-2 text-(--color-green)">Unlimited (BYOK)</span>
 				{:else}
-					<span class="ml-2 text-yellow-300">{adviceRemaining ?? '...'} remaining</span>
+					<span class="ml-2 text-(--color-amber)">{adviceRemaining ?? '...'} remaining</span>
 				{/if}
 			</div>
 			<div>
-				<span class="text-zinc-400">Profile generations:</span>
+				<span class="text-(--color-text-tertiary)">Profile generations:</span>
 				{#if hasKey}
-					<span class="ml-2 text-green-400">Unlimited (BYOK)</span>
+					<span class="ml-2 text-(--color-green)">Unlimited (BYOK)</span>
 				{:else}
-					<span class="ml-2 text-yellow-300">{profileRemaining ?? '...'} remaining</span>
+					<span class="ml-2 text-(--color-amber)">{profileRemaining ?? '...'} remaining</span>
 				{/if}
 			</div>
 		</div>
 	</section>
 
 	<!-- API Key -->
-	<section class="mb-8 rounded-lg bg-zinc-800/50 p-5">
-		<h2 class="mb-3 text-lg font-semibold text-zinc-200">Anthropic API Key</h2>
-		<p class="mb-3 text-sm text-zinc-400">
+	<section class="mb-8 rounded-lg bg-(--color-surface)/50 p-5" aria-labelledby="apikey-heading">
+		<h2 id="apikey-heading" class="mb-3 text-lg font-semibold text-(--color-text-secondary)">Anthropic API Key</h2>
+		<p class="mb-3 text-sm text-(--color-text-tertiary)">
 			Add your own Anthropic API key for unlimited access. Your key is encrypted at rest.
 		</p>
 
 		{#if hasKey}
 			<div class="flex items-center gap-3">
-				<span class="text-sm text-green-400">Key saved</span>
+				<span class="text-sm text-(--color-green)">Key saved</span>
 				<button
 					onclick={deleteApiKey}
 					disabled={saving}
-					class="rounded bg-red-700 px-3 py-1.5 text-sm text-white hover:bg-red-600 disabled:opacity-50"
+					class="rounded bg-(--color-red) px-3 py-1.5 text-sm text-white hover:opacity-80 disabled:opacity-50 cursor-pointer"
 				>
 					Remove Key
 				</button>
 			</div>
 		{:else}
 			<div class="flex gap-2">
+				<label for="api-key-input" class="sr-only">Anthropic API Key</label>
 				<input
+					id="api-key-input"
 					type="password"
 					bind:value={apiKeyInput}
 					placeholder="sk-ant-..."
-					class="flex-1 rounded bg-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+					autocomplete="off"
+					class="flex-1 rounded bg-(--color-surface-raised) px-3 py-2 text-sm text-(--color-text) placeholder:text-(--color-text-dim) focus:ring-2 focus:ring-(--color-accent) focus:outline-none"
 				/>
 				<button
 					onclick={saveApiKey}
 					disabled={saving || !apiKeyInput.trim()}
-					class="rounded bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+					class="rounded bg-(--color-accent) px-4 py-2 text-sm font-medium text-white hover:bg-(--color-accent-hover) disabled:opacity-50 cursor-pointer"
 				>
 					{saving ? 'Validating...' : 'Save Key'}
 				</button>
@@ -189,37 +196,40 @@
 	</section>
 
 	<!-- Model Selection -->
-	<section class="mb-8 rounded-lg bg-zinc-800/50 p-5">
-		<h2 class="mb-3 text-lg font-semibold text-zinc-200">Model</h2>
-		<p class="mb-3 text-sm text-zinc-400">
+	<section class="mb-8 rounded-lg bg-(--color-surface)/50 p-5" aria-labelledby="model-heading">
+		<h2 id="model-heading" class="mb-3 text-lg font-semibold text-(--color-text-secondary)">Model</h2>
+		<p class="mb-3 text-sm text-(--color-text-tertiary)">
 			Choose which Claude model to use for advice. Requires your own API key.
 		</p>
 		<div class="flex items-center gap-3">
+			<label for="model-select" class="sr-only">Claude model</label>
 			<select
+				id="model-select"
 				bind:value={selectedModel}
 				onchange={updateModel}
 				disabled={!hasKey}
-				class="rounded bg-zinc-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+				class="rounded bg-(--color-surface-raised) px-3 py-2 text-sm text-(--color-text) disabled:opacity-50 cursor-pointer"
 			>
 				<option value="claude-sonnet-4-6">Claude Sonnet 4.6 (fast, recommended)</option>
 				<option value="claude-opus-4-6">Claude Opus 4.6 (highest quality)</option>
 			</select>
 			{#if !hasKey}
-				<span class="text-xs text-zinc-500">Add API key to unlock</span>
+				<span class="text-xs text-(--color-text-dim)">Add API key to unlock</span>
 			{/if}
 		</div>
 	</section>
 
 	<!-- Danger Zone -->
-	<section class="rounded-lg border border-red-900/50 bg-zinc-900/50 p-5">
-		<h2 class="mb-3 text-lg font-semibold text-red-400">Danger Zone</h2>
+	<section class="rounded-lg border border-(--color-red)/30 bg-(--color-surface)/30 p-5" aria-labelledby="danger-heading">
+		<h2 id="danger-heading" class="mb-3 text-lg font-semibold text-(--color-red)">Danger Zone</h2>
 		<button
 			onclick={deleteAccount}
-			class="rounded bg-red-800 px-4 py-2 text-sm text-white hover:bg-red-700"
+			aria-describedby="delete-description"
+			class="rounded bg-(--color-red)/80 px-4 py-2 text-sm text-white hover:bg-(--color-red) cursor-pointer"
 		>
 			Delete My Account
 		</button>
-		<p class="mt-2 text-xs text-zinc-500">
+		<p id="delete-description" class="mt-2 text-xs text-(--color-text-dim)">
 			Permanently deletes your account, profiles, matches, and all associated data.
 		</p>
 	</section>

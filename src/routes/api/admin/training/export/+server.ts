@@ -11,7 +11,6 @@ export const GET: RequestHandler = async () => {
 			userId: trainingSamples.userId,
 			username: users.username,
 			screenshotHash: trainingSamples.screenshotHash,
-			screenshotPath: trainingSamples.screenshotPath,
 			resolution: trainingSamples.resolution,
 			uiSize: trainingSamples.uiSize,
 			deviceInfo: trainingSamples.deviceInfo,
@@ -23,7 +22,8 @@ export const GET: RequestHandler = async () => {
 			createdAt: trainingSamples.createdAt
 		})
 		.from(trainingSamples)
-		.leftJoin(users, eq(trainingSamples.userId, users.id));
+		.leftJoin(users, eq(trainingSamples.userId, users.id))
+		.limit(5000);
 
 	return json(
 		samples.map(s => ({

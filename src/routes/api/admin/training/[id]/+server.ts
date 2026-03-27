@@ -11,6 +11,17 @@ export const PATCH: RequestHandler = async ({ params }) => {
 		throw error(400, 'Invalid training sample ID');
 	}
 
+	// Verify the sample exists before updating
+	const existing = await db
+		.select({ id: trainingSamples.id })
+		.from(trainingSamples)
+		.where(eq(trainingSamples.id, id))
+		.limit(1);
+
+	if (existing.length === 0) {
+		throw error(404, 'Training sample not found');
+	}
+
 	await db.update(trainingSamples)
 		.set({ reviewedByAdmin: true })
 		.where(eq(trainingSamples.id, id));
