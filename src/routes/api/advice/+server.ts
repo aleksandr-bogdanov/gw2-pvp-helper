@@ -339,8 +339,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						db.update(matches)
 							.set({ adviceRaw })
 							.where(eq(matches.matchId, matchId))
+							.then(() => {})
 							.catch((e) => {
-								logger.warn({ event: 'advice_raw_save_failed', matchId, error: e instanceof Error ? e.message : String(e) }, 'Failed to save advice_raw');
+								logger.error({ event: 'advice_raw_save_failed', matchId, error: e instanceof Error ? e.message : String(e) }, 'Failed to save advice_raw');
 							});
 					}
 

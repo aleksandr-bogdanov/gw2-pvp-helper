@@ -104,6 +104,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		throw error(400, 'Missing or invalid team data');
 	}
 
+	const validatedTeamColor: 'red' | 'blue' = userTeamColor === 'red' || userTeamColor === 'blue' ? userTeamColor : 'blue';
+
 	// Validate player objects have required fields
 	for (const p of [...myTeam, ...enemyTeam]) {
 		if (!p || typeof p.character_name !== 'string' || typeof p.profession_id !== 'string' || typeof p.spec_id !== 'string') {
@@ -142,7 +144,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		.values({
 			userId: userId ?? null,
 			userProfileId: userProfileId ?? null,
-			userTeamColor: userTeamColor ?? null,
+			userTeamColor: validatedTeamColor,
 			map: map ?? null,
 			screenshotHash: screenshotHash ?? null
 		})
@@ -152,7 +154,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		...myTeam.map((p: { character_name: string; profession_id: string; spec_id: string; role: string; is_user?: boolean }) => ({
 			matchId: match.matchId,
 			characterName: p.character_name,
-			team: userTeamColor,
+			team: validatedTeamColor,
 			profession: p.profession_id,
 			spec: p.spec_id,
 			role: p.role,
@@ -161,7 +163,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		...enemyTeam.map((p: { character_name: string; profession_id: string; spec_id: string; role: string }) => ({
 			matchId: match.matchId,
 			characterName: p.character_name,
-			team: userTeamColor === 'red' ? 'blue' : 'red',
+			team: validatedTeamColor === 'red' ? 'blue' : 'red',
 			profession: p.profession_id,
 			spec: p.spec_id,
 			role: p.role,
@@ -281,7 +283,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		}
 	}
 
-	return json({ matchId: current.matchId, result: current.result ?? result });
+	return json({ matchId: current.matchId, result: result ?? current.result });
 };
 
 // --- DELETE: Remove a match ---

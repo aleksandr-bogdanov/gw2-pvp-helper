@@ -23,6 +23,10 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 	};
 	const userId = locals.effectiveUserId;
 
+	if (!userId) {
+		throw error(401, 'Authentication required');
+	}
+
 	if (!matchId || !ratings || !Array.isArray(ratings)) {
 		throw error(400, 'Missing matchId or ratings array');
 	}
@@ -99,6 +103,10 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const matchId = url.searchParams.get('matchId');
 	const userId = locals.effectiveUserId;
+
+	if (!userId) {
+		throw error(401, 'Authentication required');
+	}
 
 	if (!matchId) {
 		throw error(400, 'Missing matchId');

@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
 	const orderClause = sortBy === 'confidence'
-		? asc(sql`(SELECT avg(value::numeric) FROM jsonb_array_elements_text(${trainingSamples.confidenceScores}::jsonb))`)
+		? asc(sql`(SELECT avg((elem->>'spec_confidence')::numeric) FROM jsonb_array_elements(${trainingSamples.confidenceScores}::jsonb) AS elem)`)
 		: desc(trainingSamples.createdAt);
 
 	// Run filtered samples query and stats query in parallel
