@@ -6,8 +6,8 @@ import { eq, and, sql } from 'drizzle-orm';
 
 // GET: List players — stats computed from user's own matches (multi-tenant)
 export const GET: RequestHandler = async ({ url, locals }) => {
-	const limit = parseInt(url.searchParams.get('limit') ?? '200');
-	const offset = parseInt(url.searchParams.get('offset') ?? '0');
+	const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '') || 50, 200);
+	const offset = parseInt(url.searchParams.get('offset') ?? '') || 0;
 	const userId = locals.effectiveUserId;
 
 	if (!userId) {

@@ -14,8 +14,8 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const userId = locals.effectiveUserId;
 	const { corrections } = await request.json();
 
-	if (!corrections) {
-		throw error(400, 'Missing corrections data');
+	if (!Array.isArray(corrections)) {
+		throw error(400, 'corrections must be an array');
 	}
 
 	// Only allow users to correct their own training samples (unless admin)

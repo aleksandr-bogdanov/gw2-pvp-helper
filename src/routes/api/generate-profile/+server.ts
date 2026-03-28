@@ -236,12 +236,28 @@ ${playstyle || 'No description provided. Generate a basic profile for this spec 
 
 ${weaknesses ? `What gets them killed most often:\n${weaknesses}` : ''}`;
 
-	const stream = await activeClient.messages.stream({
-		model: 'claude-opus-4-6',
-		max_tokens: 3000,
-		system: systemPrompt,
-		messages: [{ role: 'user', content: userMessage }]
-	});
+	let stream: Awaited<ReturnType<typeof activeClient.messages.stream>>;
+	try {
+		stream = await activeClient.messages.stream({
+			model: 'claude-opus-4-6',
+			max_tokens: 3000,
+			system: systemPrompt,
+			messages: [{ role: 'user', content: userMessage }]
+		});
+	} catch (err) {
+		if (shouldRestoreOnError && userId) {
+			try {
+				await restoreProfileGen(userId);
+			} catch {
+				logger.warn(
+					{ event: 'profile_gen_restore_failed', userId },
+					'Failed to restore profile gen after stream init error'
+				);
+			}
+		}
+		const message = err instanceof Error ? err.message : 'Failed to connect to Anthropic API';
+		return json({ error: message }, { status: 502 });
+	}
 
 	const encoder = new TextEncoder();
 

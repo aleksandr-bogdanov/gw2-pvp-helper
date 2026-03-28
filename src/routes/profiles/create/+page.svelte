@@ -323,8 +323,8 @@
 			});
 
 			if (!res.ok) {
-				const err = await res.json().catch(() => ({ message: 'Generation failed' }));
-				throw new Error(err.message ?? 'Generation failed');
+				const err = await res.json().catch(() => ({ error: 'Generation failed' }));
+				throw new Error(err.error ?? 'Generation failed');
 			}
 
 			const reader = res.body?.getReader();
