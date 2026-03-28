@@ -121,7 +121,7 @@ export function highlightNames(text: string, fragments: Set<string>): string {
 	if (fragments.size === 0) return result;
 	const sorted = [...fragments].sort((a, b) => b.length - a.length);
 	const escaped = sorted.map(n => escapeHtml(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-	const pattern = new RegExp(`(?<![<\\w])\\b(${escaped.join('|')})\\b(?![\\w>])`, 'gi');
+	const pattern = new RegExp(`(?<![<>\\w])\\b(${escaped.join('|')})\\b(?![\\w>])`, 'gi');
 	return result.replace(pattern, '<strong class="font-semibold text-(--color-text)">$1</strong>');
 }
 
