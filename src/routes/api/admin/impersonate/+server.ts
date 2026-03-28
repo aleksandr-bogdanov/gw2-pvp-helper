@@ -2,6 +2,9 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { setImpersonation, SESSION_COOKIE_NAME } from '$lib/server/auth.js';
 import { logger } from '$lib/server/logger.js';
+import { db } from '$lib/server/db/index.js';
+import { users } from '$lib/server/db/schema.js';
+import { eq } from 'drizzle-orm';
 
 /** POST /api/admin/impersonate — set or clear impersonation target */
 export const POST: RequestHandler = async ({ request, cookies, locals }) => {
@@ -19,6 +22,17 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 	const targetId = userId === null ? null : parseInt(userId, 10);
 	if (userId !== null && isNaN(targetId!)) {
 		throw error(400, 'Invalid userId');
+	}
+
+	// Validate target user exists before writing impersonation
+	if (targetId !== null) {
+		const [targetUser] = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.id, targetId));
+		if (!targetUser) {
+			throw error(404, 'User not found');
+		}
 	}
 
 	await setImpersonation(token, targetId);

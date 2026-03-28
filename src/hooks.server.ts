@@ -6,6 +6,9 @@ import { warmupClassifier, warmupOCR, warmupMinimap, terminateOCR } from '$lib/s
 import { resolveSession, SESSION_COOKIE_NAME } from '$lib/server/auth.js';
 import { logger } from '$lib/server/logger.js';
 import { initTelemetry } from '$lib/server/telemetry.js';
+import { db } from '$lib/server/db/index.js';
+import { users } from '$lib/server/db/schema.js';
+import { eq } from 'drizzle-orm';
 
 // Initialize Sentry (skips gracefully if no DSN)
 const sentryDsn = process.env.SENTRY_DSN;
@@ -94,7 +97,23 @@ const authHandle: Handle = async ({ event, resolve }) => {
 				if (asParam) {
 					const targetId = parseInt(asParam, 10);
 					if (!isNaN(targetId)) {
-						event.locals.effectiveUserId = targetId;
+						// Validate target user exists before allowing impersonation
+						const [targetUser] = await db
+							.select({ id: users.id, username: users.username })
+							.from(users)
+							.where(eq(users.id, targetId));
+						if (targetUser) {
+							event.locals.effectiveUserId = targetId;
+							logger.info(
+								{ event: 'impersonation_query_param', adminId: user.id, adminUsername: user.username, targetUserId: targetId, targetUsername: targetUser.username },
+								`Admin ${user.username} impersonating user ${targetUser.username} via ?as= param`
+							);
+						} else {
+							logger.warn(
+								{ event: 'impersonation_invalid_target', adminId: user.id, adminUsername: user.username, targetUserId: targetId },
+								`Admin ${user.username} attempted ?as= impersonation of non-existent user ${targetId}`
+							);
+						}
 					}
 				} else if (user.impersonatingUserId) {
 					// Fall back to session-stored impersonation
