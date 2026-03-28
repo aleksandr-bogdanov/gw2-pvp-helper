@@ -152,8 +152,9 @@
 
 	// Auto-trigger Get Advice when all issues resolved
 	let autoAdviceTriggered = $state(false);
+	let mountComplete = $state(false);
 	$effect(() => {
-		if (issueCount === 0 && redTeam.length > 0 && !adviceLoading && !adviceReady && !autoAdviceTriggered) {
+		if (mountComplete && issueCount === 0 && redTeam.length > 0 && !adviceLoading && !adviceReady && !autoAdviceTriggered) {
 			autoAdviceTriggered = true;
 			getAdvice();
 		}
@@ -307,6 +308,7 @@
 					sessionStorage.setItem('lastMatchId', matchId);
 					replaceState(`/match/${matchId}`, {});
 				}
+				mountComplete = true;
 			} else {
 				// No sessionStorage data for 'new' — redirect home
 				goto('/');
@@ -319,6 +321,7 @@
 				goto('/');
 				return;
 			}
+			mountComplete = true;
 		}
 	});
 
@@ -336,11 +339,8 @@
 			}
 
 			if (!matchData) {
-				// Fall back to most recent match
-				const res = await fetch('/api/match?limit=1');
-				if (!res.ok) return false;
-				const data = await res.json();
-				matchData = data.matches?.[0] ?? null;
+				// Match not found — do not fall back to a different match
+				return false;
 			}
 
 			if (!matchData || matchData.players.length === 0) return false;
@@ -1026,6 +1026,19 @@
 		adviceReady = false;
 		match = null;
 		rawAdviceText = '';
+
+		// For DB-recovered matches, scanResult is null — synthesize a minimal one
+		// so the pre-advice template condition (scanResult && !adviceReady && !match) works
+		if (!scanResult && redTeam.length > 0) {
+			scanResult = {
+				user_team_color: userTeamColor,
+				red_team: redTeam,
+				blue_team: blueTeam,
+				screenshotHash: screenshotHash ?? undefined,
+				screenshotUrl: screenshotUrl ?? undefined
+			};
+		}
+
 		await getAdvice();
 	}
 
