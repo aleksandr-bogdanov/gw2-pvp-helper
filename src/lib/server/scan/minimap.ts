@@ -57,7 +57,9 @@ const MAP_MODES: Record<string, GameMode> = {
 	revenge_of_the_capricorn: 'conquest',
 	spirit_watch: 'conquest',
 	sunjiang_backstreets: 'push',
-	battle_of_champions_dusk: 'stronghold' as GameMode
+	// Champion's Dusk is a stronghold map, but stronghold is not a supported mode.
+	// Its scoreboard layout matches conquest, so treat it as conquest.
+	battle_of_champions_dusk: 'conquest'
 };
 
 /** Number of bins per RGB channel for the color histogram */
@@ -98,7 +100,10 @@ function encodeFeatures(features: Float64Array): string {
  */
 function decodeFeatures(encoded: string): Float64Array {
 	const buf = Buffer.from(encoded, 'base64');
-	return new Float64Array(buf.buffer, buf.byteOffset, buf.byteLength / 8);
+	// Copy to a fresh Uint8Array to ensure 8-byte alignment required by Float64Array.
+	// Buffer.from(base64) may return a non-aligned slice from the pool allocator.
+	const aligned = new Uint8Array(buf);
+	return new Float64Array(aligned.buffer);
 }
 
 /**

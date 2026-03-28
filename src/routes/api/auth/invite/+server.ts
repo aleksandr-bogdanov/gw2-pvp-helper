@@ -13,7 +13,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	const result = await validateInviteCode(code.trim());
 
 	if (!result.valid) {
-		return json({ valid: false, reason: result.reason }, { status: 400 });
+		// Return a single generic message to prevent invite code enumeration
+		return json({ valid: false, reason: 'Invalid invite code' }, { status: 400 });
 	}
 
 	return json({ valid: true });

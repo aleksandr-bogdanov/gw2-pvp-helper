@@ -114,17 +114,39 @@ function preprocessNameCrop(crop: RawImage): OffscreenCanvas {
 		scaled.data[i * 4 + 1] = thresholded;
 		scaled.data[i * 4 + 2] = thresholded;
 	}
+	dstCtx.putImageData(scaled, 0, 0);
+
+	// Trim black borders: detect bounding box of white (text) pixels, then crop.
+	// Without this, large black regions adjacent to padding confuse Tesseract.
+	let minX = sw, minY = sh, maxX = -1, maxY = -1;
+	for (let y = 0; y < sh; y++) {
+		for (let x = 0; x < sw; x++) {
+			const idx = (y * sw + x) * 4;
+			if (scaled.data[idx] === 255) { // white pixel (text)
+				if (x < minX) minX = x;
+				if (x > maxX) maxX = x;
+				if (y < minY) minY = y;
+				if (y > maxY) maxY = y;
+			}
+		}
+	}
+
+	// If no white pixels found (blank crop), use full dimensions
+	if (maxX === -1) { minX = 0; minY = 0; maxX = sw - 1; maxY = sh - 1; }
+
+	const trimW = maxX - minX + 1;
+	const trimH = maxY - minY + 1;
 
 	// Add white padding (15px border)
 	const pad = 15;
-	const pw = sw + pad * 2;
-	const ph = sh + pad * 2;
+	const pw = trimW + pad * 2;
+	const ph = trimH + pad * 2;
 	const padCanvas = new OffscreenCanvas(pw, ph);
 	const padCtx = padCanvas.getContext('2d', { willReadFrequently: true })!;
 	padCtx.fillStyle = 'white';
 	padCtx.fillRect(0, 0, pw, ph);
-	dstCtx.putImageData(scaled, 0, 0);
-	padCtx.drawImage(dstCanvas, pad, pad);
+	// Draw only the trimmed region offset by padding
+	padCtx.drawImage(dstCanvas, minX, minY, trimW, trimH, pad, pad, trimW, trimH);
 
 	return padCanvas;
 }

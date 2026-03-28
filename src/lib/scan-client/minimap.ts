@@ -144,9 +144,11 @@ function extractMinimapThumb(rgbImage: RawImage): Float64Array {
 	}
 	roiCtx.putImageData(roiData, 0, 0);
 
-	// Resize to thumbnail
+	// Resize to thumbnail using highest quality resampling (bicubic or better)
 	const thumbCanvas = new OffscreenCanvas(THUMB_SIZE, THUMB_SIZE);
 	const thumbCtx = thumbCanvas.getContext('2d', { willReadFrequently: true })!;
+	thumbCtx.imageSmoothingEnabled = true;
+	thumbCtx.imageSmoothingQuality = 'high';
 	thumbCtx.drawImage(roiCanvas, 0, 0, THUMB_SIZE, THUMB_SIZE);
 	const thumbData = thumbCtx.getImageData(0, 0, THUMB_SIZE, THUMB_SIZE);
 

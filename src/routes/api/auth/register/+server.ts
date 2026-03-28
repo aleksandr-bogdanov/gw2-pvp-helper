@@ -9,6 +9,16 @@ import { eq } from 'drizzle-orm';
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	const { code, username, password, consent, deviceInfo } = await request.json();
 
+	// Validate deviceInfo: must be a plain object (not array/null) and under 2 KB
+	if (deviceInfo !== undefined && deviceInfo !== null) {
+		if (typeof deviceInfo !== 'object' || Array.isArray(deviceInfo)) {
+			throw error(400, 'Invalid deviceInfo');
+		}
+		if (JSON.stringify(deviceInfo).length > 2048) {
+			throw error(400, 'deviceInfo exceeds maximum size');
+		}
+	}
+
 	if (!code || typeof code !== 'string') {
 		throw error(400, 'Missing invite code');
 	}
@@ -46,14 +56,25 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		return json({ error: 'Username already taken' }, { status: 409 });
 	}
 
-	// Create user + session
-	const { token, userId } = await createUser(
-		trimmedUsername,
-		code.trim(),
-		true,
-		deviceInfo ?? undefined,
-		password
-	);
+	// Create user + session — wrapped to catch unique constraint violation from concurrent registrations
+	let token: string;
+	let userId: number;
+	try {
+		({ token, userId } = await createUser(
+			trimmedUsername,
+			code.trim(),
+			true,
+			deviceInfo ?? undefined,
+			password
+		));
+	} catch (err) {
+		// Postgres unique_violation: code 23505
+		const pgErr = err as { code?: string };
+		if (pgErr.code === '23505') {
+			return json({ error: 'Username already taken' }, { status: 409 });
+		}
+		throw err;
+	}
 
 	// Set session cookie
 	cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions());

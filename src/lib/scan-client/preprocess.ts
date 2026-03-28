@@ -26,9 +26,9 @@ export function imageToGrayscale(bitmap: ImageBitmap): RawImage {
 
 	const gray = new Uint8Array(w * h);
 	for (let i = 0; i < w * h; i++) {
-		// ITU-R BT.601 luma formula (matches Sharp .grayscale())
+		// ITU-R BT.709 luma formula (matches Sharp .grayscale())
 		gray[i] = Math.round(
-			0.299 * rgba[i * 4] + 0.587 * rgba[i * 4 + 1] + 0.114 * rgba[i * 4 + 2]
+			0.2126 * rgba[i * 4] + 0.7152 * rgba[i * 4 + 1] + 0.0722 * rgba[i * 4 + 2]
 		);
 	}
 
@@ -108,9 +108,11 @@ export function resizeGrayscale(
 	}
 	srcCtx.putImageData(srcData, 0, 0);
 
-	// Draw resized onto target canvas
+	// Draw resized onto target canvas using highest quality resampling (bicubic or better)
 	const dstCanvas = new OffscreenCanvas(targetWidth, targetHeight);
 	const dstCtx = dstCanvas.getContext('2d', { willReadFrequently: true })!;
+	dstCtx.imageSmoothingEnabled = true;
+	dstCtx.imageSmoothingQuality = 'high';
 	dstCtx.drawImage(srcCanvas, 0, 0, targetWidth, targetHeight);
 	const dstData = dstCtx.getImageData(0, 0, targetWidth, targetHeight);
 
