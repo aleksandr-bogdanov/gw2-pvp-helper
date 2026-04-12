@@ -6,15 +6,7 @@ let initialized = false;
 /**
  * Initialize OpenTelemetry with Honeycomb exporter.
  * Skips gracefully when HONEYCOMB_API_KEY is not set (dev mode).
- *
- * The heavy SDK packages (@opentelemetry/sdk-node, exporters, instrumentations)
- * are NOT in package.json — they're installed separately in the Dockerfile:
- *   bun add @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-proto \
- *     @opentelemetry/instrumentation-http @opentelemetry/instrumentation-pg
- *
- * This keeps them out of Vite's build analysis (which was adding 5+ min).
- * @opentelemetry/api is lightweight (23 MB via Sentry) and acts as no-ops
- * when no SDK provider is registered.
+ * SDK packages are dynamically imported to avoid Vite bundling them.
  */
 export async function initTelemetry(): Promise<void> {
 	if (initialized) return;

@@ -7,9 +7,6 @@ RUN npm install -g bun
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
-# Sharp needs platform-specific native binaries; bun lockfile may pin the wrong platform.
-# Explicitly install the linux-x64 musl variant for Alpine.
-RUN bun add @img/sharp-linuxmusl-x64
 
 COPY . .
 
@@ -23,11 +20,6 @@ ENV ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
 
 RUN bun run build
 
-# Install heavy OTel packages AFTER build so they don't slow Vite analysis.
-# These are only needed at runtime when HONEYCOMB_API_KEY is set.
-RUN bun add @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-proto \
-    @opentelemetry/instrumentation-http @opentelemetry/instrumentation-pg
-
 # --- Production stage ---
 FROM node:20-alpine
 
@@ -37,7 +29,7 @@ COPY --from=builder /app/build ./build
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
-# Data files for server-side scan fallback + prompt templates
+# Data files for prompt templates + reference icons
 COPY --from=builder /app/data ./data
 
 # Railway volume mount point for training screenshots

@@ -21,7 +21,8 @@ try {
 	warmupOCR = noop;
 	warmupMinimap = noop;
 	terminateOCR = noop;
-	console.error('Server-side scan pipeline failed to load (Sharp?):', err instanceof Error ? err.message : err);
+	console.warn('Server-side scan unavailable (Sharp native addon failed to load). Client-side scan still works.',
+		err instanceof Error ? err.message : err);
 }
 import { resolveSession, SESSION_COOKIE_NAME } from '$lib/server/auth.js';
 import { logger } from '$lib/server/logger.js';
