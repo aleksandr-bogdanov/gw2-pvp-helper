@@ -4,8 +4,11 @@
  * Creates the __drizzle_migrations journal table and marks migrations 0000-0011
  * as already applied (they were applied via push). Idempotent — safe to run
  * multiple times; skips if the table already has entries.
+ *
+ * drizzle-orm uses SHA256(sql_content) as the hash, NOT the tag name.
  */
 import postgres from 'postgres';
+import crypto from 'crypto';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -24,25 +27,34 @@ try {
 		)
 	`;
 
-	// Check if already bootstrapped
-	const existing = await sql`SELECT count(*) as cnt FROM "__drizzle_migrations"`;
-	if (Number(existing[0].cnt) > 0) {
-		console.log('[bootstrap] Migrations journal already populated, skipping');
+	// Check if already bootstrapped — but verify hashes are correct format (sha256 = 64 hex chars)
+	const existing = await sql`SELECT hash FROM "__drizzle_migrations" LIMIT 1`;
+	if (existing.length > 0 && existing[0].hash.length === 64) {
+		console.log('[bootstrap] Migrations journal already populated with correct hashes, skipping');
 		await sql.end();
 		process.exit(0);
 	}
 
-	// Read the journal to get migration hashes
+	// If entries exist with wrong hash format (tag names from previous bootstrap), clear them
+	if (existing.length > 0) {
+		console.log('[bootstrap] Clearing stale entries with wrong hash format');
+		await sql`DELETE FROM "__drizzle_migrations"`;
+	}
+
+	// Read the journal
 	const journal = JSON.parse(readFileSync(resolve(ROOT, 'drizzle/meta/_journal.json'), 'utf-8'));
 
-	// Mark migrations 0000-0011 as already applied
+	// Mark migrations 0000-0011 as already applied using SHA256 of SQL content
 	for (const entry of journal.entries) {
 		if (entry.idx > 11) continue; // Only bootstrap pre-existing migrations
+		const sqlPath = resolve(ROOT, 'drizzle', `${entry.tag}.sql`);
+		const sqlContent = readFileSync(sqlPath).toString();
+		const hash = crypto.createHash('sha256').update(sqlContent).digest('hex');
 		await sql`
 			INSERT INTO "__drizzle_migrations" (hash, created_at)
-			VALUES (${entry.tag}, ${entry.when})
+			VALUES (${hash}, ${entry.when})
 		`;
-		console.log(`[bootstrap] Marked ${entry.tag} as applied`);
+		console.log(`[bootstrap] Marked ${entry.tag} as applied (${hash.slice(0, 8)}...)`);
 	}
 
 	console.log('[bootstrap] Done — drizzle-kit migrate will only run new migrations');
