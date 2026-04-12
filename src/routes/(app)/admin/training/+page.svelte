@@ -49,10 +49,20 @@
 
 	onMount(loadSamples);
 
+	function avgConfidenceNum(scores: TrainingSample['confidenceScores']): number {
+		if (!scores || !Array.isArray(scores) || scores.length === 0) return 0;
+		return scores.reduce((s, c) => s + (c.spec_confidence ?? 0), 0) / scores.length;
+	}
+
 	function avgConfidence(scores: TrainingSample['confidenceScores']): string {
-		if (!scores || !Array.isArray(scores) || scores.length === 0) return '-';
-		const avg = scores.reduce((s, c) => s + (c.spec_confidence ?? 0), 0) / scores.length;
-		return (avg * 100).toFixed(0) + '%';
+		const avg = avgConfidenceNum(scores);
+		return avg > 0 ? (avg * 100).toFixed(0) + '%' : '-';
+	}
+
+	function confidenceColor(pct: number): string {
+		if (pct >= 0.9) return 'var(--color-green)';
+		if (pct >= 0.7) return 'var(--color-amber)';
+		return 'var(--color-red)';
 	}
 
 	function formatDate(dateStr: string): string {
@@ -104,36 +114,47 @@
 </svelte:head>
 
 <div>
-	<div class="mb-4 flex items-center justify-between">
-		<h1 class="text-xl font-bold text-(--color-text)">Training Data</h1>
+	<div class="mb-6 flex items-center justify-between">
+		<h1 class="text-2xl font-bold text-(--color-text)">Training Data</h1>
 		<a
 			href="/api/admin/training/export"
 			target="_blank"
-			class="rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-hover) transition-colors"
+			class="flex items-center gap-2 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-hover) transition-colors"
 		>
+			<svg class="h-4 w-4 text-(--color-green)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+			</svg>
 			Export JSON
 		</a>
 	</div>
 
 	<!-- Stats panel -->
 	{#if Object.keys(stats).length > 0}
-		<div class="mb-4 rounded-xl border border-(--color-border) bg-(--color-surface) p-4">
-			<p class="text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary) mb-2">Accuracy by Resolution</p>
-			<div class="flex flex-wrap gap-4">
-				{#each Object.entries(stats) as [res, stat]}
-					<div class="text-sm">
-						<span class="font-mono text-(--color-text)">{res}</span>
-						<span class="text-(--color-text-tertiary) ml-1">
-							{stat.total} samples, {stat.corrected} corrected, avg conf: {(stat.avgConfidence * 100).toFixed(0)}%
-						</span>
+		<div class="mb-6 grid grid-cols-{Object.keys(stats).length > 3 ? '4' : Object.keys(stats).length} gap-4">
+			{#each Object.entries(stats) as [res, stat]}
+				{@const confPct = stat.avgConfidence}
+				<div class="rounded-xl border border-(--color-border) bg-(--color-surface) p-4">
+					<div class="flex items-center justify-between mb-3">
+						<span class="font-mono text-sm font-medium text-(--color-text)">{res}</span>
+						<span class="text-[10px] font-bold uppercase tracking-wider text-(--color-text-tertiary)">{stat.total} samples</span>
 					</div>
-				{/each}
-			</div>
+					<!-- Confidence gauge -->
+					<div class="flex items-center gap-3">
+						<div class="h-2 flex-1 rounded-full bg-(--color-bg)">
+							<div class="h-full rounded-full transition-all duration-500" style="width: {confPct * 100}%; background: {confidenceColor(confPct)}"></div>
+						</div>
+						<span class="font-mono text-xs font-medium" style="color: {confidenceColor(confPct)}">{(confPct * 100).toFixed(0)}%</span>
+					</div>
+					{#if stat.corrected > 0}
+						<p class="mt-2 text-[10px] text-(--color-amber)">{stat.corrected} corrected</p>
+					{/if}
+				</div>
+			{/each}
 		</div>
 	{/if}
 
 	<!-- Filters -->
-	<div class="mb-4 flex items-center gap-3">
+	<div class="mb-6 flex items-center gap-3">
 		<select
 			bind:value={sortBy}
 			onchange={loadSamples}
@@ -169,40 +190,66 @@
 			<table class="w-full text-sm">
 				<thead>
 					<tr class="border-b border-(--color-border) bg-(--color-surface)">
-						<th class="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">ID</th>
-						<th class="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">User</th>
-						<th class="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Resolution</th>
-						<th class="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Confidence</th>
-						<th class="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Corrections</th>
-						<th class="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Reviewed</th>
-						<th class="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Date</th>
+						<th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">ID</th>
+						<th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">User</th>
+						<th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Resolution</th>
+						<th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Confidence</th>
+						<th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Corrections</th>
+						<th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Status</th>
+						<th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)">Date</th>
+						<th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary)"></th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each samples as sample}
+						{@const confNum = avgConfidenceNum(sample.confidenceScores)}
 						<tr
 							class="border-b border-(--color-border)/50 hover:bg-(--color-surface-hover) transition-colors cursor-pointer"
 							onclick={() => (selectedSample = sample)}
 						>
-							<td class="px-3 py-2 font-mono text-xs text-(--color-text-tertiary)">#{sample.id}</td>
-							<td class="px-3 py-2 font-mono text-(--color-text)">{sample.username ?? '-'}</td>
-							<td class="px-3 py-2 font-mono text-xs text-(--color-text-secondary)">{sample.resolution ?? '-'}</td>
-							<td class="px-3 py-2 font-mono text-xs text-(--color-text-secondary)">{avgConfidence(sample.confidenceScores)}</td>
-							<td class="px-3 py-2">
+							<td class="px-4 py-3 font-mono text-xs text-(--color-text-tertiary)">#{sample.id}</td>
+							<td class="px-4 py-3 font-mono text-(--color-text)">{sample.username ?? '-'}</td>
+							<td class="px-4 py-3 font-mono text-xs text-(--color-text-secondary)">{sample.resolution ?? '-'}</td>
+							<!-- Confidence gauge -->
+							<td class="px-4 py-3">
+								<div class="flex items-center gap-2">
+									<div class="h-1.5 w-16 rounded-full bg-(--color-bg)">
+										<div class="h-full rounded-full" style="width: {confNum * 100}%; background: {confidenceColor(confNum)}"></div>
+									</div>
+									<span class="font-mono text-xs" style="color: {confidenceColor(confNum)}">{avgConfidence(sample.confidenceScores)}</span>
+								</div>
+							</td>
+							<td class="px-4 py-3">
 								{#if sample.userCorrections}
-									<span class="text-(--color-amber) text-xs font-medium">Yes</span>
+									<span class="rounded-full bg-(--color-amber)/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-(--color-amber)">Corrected</span>
 								{:else}
-									<span class="text-(--color-text-tertiary) text-xs">No</span>
+									<span class="text-(--color-text-tertiary) text-xs">—</span>
 								{/if}
 							</td>
-							<td class="px-3 py-2">
+							<td class="px-4 py-3">
 								{#if sample.reviewedByAdmin}
-									<span class="text-(--color-green) text-xs font-medium">Yes</span>
+									<span class="flex items-center gap-1 text-xs font-medium text-(--color-green)">
+										<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+										Reviewed
+									</span>
 								{:else}
-									<span class="text-(--color-text-tertiary) text-xs">No</span>
+									<span class="flex items-center gap-1 text-xs text-(--color-text-tertiary)">
+										<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+										Pending
+									</span>
 								{/if}
 							</td>
-							<td class="px-3 py-2 text-xs text-(--color-text-tertiary)">{formatDate(sample.createdAt)}</td>
+							<td class="px-4 py-3 text-xs text-(--color-text-tertiary)">{formatDate(sample.createdAt)}</td>
+							<td class="px-4 py-3">
+								{#if !sample.reviewedByAdmin}
+									<button
+										onclick={(e) => { e.stopPropagation(); markReviewed(sample.id); }}
+										class="rounded border border-(--color-green)/30 bg-(--color-green)/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-(--color-green) hover:bg-(--color-green)/20 transition-colors cursor-pointer"
+									>
+										Approve
+									</button>
+								{/if}
+							</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -232,7 +279,10 @@
 							Mark Reviewed
 						</button>
 					{:else}
-						<span class="text-(--color-green) text-sm font-medium">Reviewed</span>
+						<span class="flex items-center gap-1.5 text-(--color-green) text-sm font-medium">
+							<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+							Reviewed
+						</span>
 					{/if}
 					<button class="text-(--color-text-tertiary) hover:text-(--color-text) text-lg cursor-pointer transition-colors" onclick={() => (selectedSample = null)}>&#10005;</button>
 				</div>
@@ -255,14 +305,15 @@
 						{#each getDetectedRoster(selectedSample.scanResult) as player, i}
 							{@const corrections = getCorrectedRoster(selectedSample.userCorrections)}
 							{@const correction = corrections.find(c => c.slot === i)}
-							<div class="flex items-center gap-2 text-xs rounded px-2 py-1 {correction ? 'bg-(--color-amber)/10 border border-(--color-amber)/20' : 'bg-(--color-surface)'}">
+							<div class="flex items-center gap-2 text-xs rounded px-2 py-1.5 {correction ? 'bg-(--color-amber)/10 border border-(--color-amber)/20' : 'bg-(--color-surface)'}">
+								<img src="/icons/specs/{player.spec === 'core' ? player.profession : player.spec}.png" alt="" class="h-4 w-4 spec-icon" />
 								<span class="font-mono text-(--color-text)">{player.name}</span>
 								<span class="text-(--color-text-tertiary)">{getSpecLabel(player.profession, player.spec)}</span>
 								{#if correction?.corrected_spec}
-									<span class="text-(--color-amber)">→ {correction.corrected_spec}</span>
+									<span class="text-(--color-amber) font-medium">→ {correction.corrected_spec}</span>
 								{/if}
 								{#if correction?.corrected_name}
-									<span class="text-(--color-amber)">→ {correction.corrected_name}</span>
+									<span class="text-(--color-amber) font-medium">→ {correction.corrected_name}</span>
 								{/if}
 							</div>
 						{/each}
@@ -270,15 +321,16 @@
 
 					{#if selectedSample.confidenceScores && Array.isArray(selectedSample.confidenceScores)}
 						<p class="text-xs font-bold uppercase tracking-wider text-(--color-text-tertiary) mt-4 mb-2">Confidence Scores</p>
-						<div class="space-y-1">
+						<div class="space-y-2">
 							{#each selectedSample.confidenceScores as score, i}
+								{@const specConf = score.spec_confidence ?? 0}
 								<div class="flex items-center gap-2 text-xs">
-									<span class="text-(--color-text-tertiary)">Slot {score.slot ?? i}:</span>
-									<span class="font-mono {(score.spec_confidence ?? 0) < 0.85 ? 'text-(--color-red)' : 'text-(--color-green)'}">
-										spec: {((score.spec_confidence ?? 0) * 100).toFixed(0)}%
-									</span>
-									<span class="font-mono {(score.name_confidence ?? 0) < 50 ? 'text-(--color-red)' : 'text-(--color-green)'}">
-										name: {score.name_confidence ?? '-'}
+									<span class="w-12 text-(--color-text-tertiary)">Slot {score.slot ?? i}</span>
+									<div class="h-1.5 flex-1 rounded-full bg-(--color-bg)">
+										<div class="h-full rounded-full" style="width: {specConf * 100}%; background: {confidenceColor(specConf)}"></div>
+									</div>
+									<span class="font-mono w-8 text-right" style="color: {confidenceColor(specConf)}">
+										{(specConf * 100).toFixed(0)}%
 									</span>
 								</div>
 							{/each}

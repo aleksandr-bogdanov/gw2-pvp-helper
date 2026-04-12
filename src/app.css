@@ -313,6 +313,7 @@ details.match-card[open] .chevron { transform: rotate(180deg); }
 html {
 	background-color: var(--color-bg);
 	color: var(--color-text);
+	scroll-behavior: smooth;
 }
 
 body {

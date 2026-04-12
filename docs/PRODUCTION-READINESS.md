@@ -22,7 +22,7 @@ Everything is built. The app has auth, usage limits, BYOK, client-side scan, ser
 Browser (Canvas + tesseract-wasm + HOG k-NN)
     │
     ├── 1 KB JSON ──→ Server (SvelteKit + Postgres)
-    │                    ├── Auth (invite codes, sessions)
+    │                    ├── Auth (GW2 API key, sessions)
     │                    ├── Match/player/profile storage
     │                    ├── Anthropic API proxy (advice + profiles)
     │                    └── Training data receiver
@@ -40,7 +40,7 @@ CV runs in the browser. Server is a thin API layer. This means server costs stay
 |---------|--------|-------|
 | Client-side CV scan | Done | Canvas + tesseract-wasm + HOG k-NN, wired into paste handler |
 | Server-side CV scan | Done | Sharp + Tesseract.js, kept as fallback + admin re-scan |
-| Auth | Done | Invite codes (single-use), username/password, sessions, admin impersonation |
+| Auth | Done | GW2 API key login, sessions, admin impersonation |
 | Usage limits | Done | 15 advice (Sonnet) + 3 profile gen (Opus) lifetime, Postgres-backed |
 | BYOK | Done | AES-256-GCM encrypted key storage, model selector, unlimited usage |
 | Match history | Done | Paginated, filterable, inline editing |
@@ -87,15 +87,14 @@ CV runs in the browser. Server is a thin API layer. This means server costs stay
 - [ ] Set spending limit ($25)
 - [ ] Deploy from GitHub (main branch)
 - [ ] Run `just db-push` equivalent (schema push)
-- [ ] Smoke test: register with invite code, paste screenshot, get advice
-- [ ] Generate 10 invite codes for beta
+- [ ] Smoke test: log in with GW2 API key, paste screenshot, get advice
 
 ### Environment Variables (Production)
 
 ```
 DATABASE_URL=          # Auto-set by Railway Postgres
 ANTHROPIC_API_KEY=     # Owner's key for free tier
-INVITE_CODES=          # Comma-separated, single-use
+ADMIN_ACCOUNTS=Korsvian.6794  # Comma-separated GW2 account names for admin
 BYOK_ENCRYPTION_KEY=   # 32-byte hex for AES-256-GCM
 FREE_ADVICE_LIMIT=15
 FREE_PROFILE_LIMIT=3

@@ -72,8 +72,8 @@ Set in Railway dashboard (not in code):
 |---|---|---|
 | `DATABASE_URL` | Yes | Railway reference: `${{Postgres.DATABASE_URL}}` |
 | `ANTHROPIC_API_KEY` | Yes | Owner's API key (used for free tier calls) |
-| `INVITE_CODES` | Yes | Comma-separated single-use codes, e.g. `beta-01,beta-02,...` |
 | `BYOK_ENCRYPTION_KEY` | Yes | 32-byte hex string for AES-256-GCM (`openssl rand -hex 32`) |
+| `ADMIN_ACCOUNTS` | No | Comma-separated GW2 account names for admin role (default: `Korsvian.6794`) |
 | `FREE_ADVICE_LIMIT` | No | Lifetime free advice calls per user (default: 15) |
 | `FREE_PROFILE_LIMIT` | No | Lifetime free profile gens per user (default: 3) |
 | `SCREENSHOTS_DIR` | No | Screenshot storage path (default: `/app/screenshots`) |
