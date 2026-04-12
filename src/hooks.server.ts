@@ -2,7 +2,27 @@ import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import * as Sentry from '@sentry/sveltekit';
-import { warmupClassifier, warmupOCR, warmupMinimap, terminateOCR } from '$lib/server/scan/index.js';
+// Dynamic import: server-side scan depends on Sharp (native addon).
+// If Sharp fails to load (e.g., missing platform binary), the server
+// should still start — client-side scan is the primary pipeline.
+let warmupClassifier: () => Promise<void>;
+let warmupOCR: () => Promise<void>;
+let warmupMinimap: () => Promise<void>;
+let terminateOCR: () => Promise<void>;
+try {
+	const scan = await import('$lib/server/scan/index.js');
+	warmupClassifier = scan.warmupClassifier;
+	warmupOCR = scan.warmupOCR;
+	warmupMinimap = scan.warmupMinimap;
+	terminateOCR = scan.terminateOCR;
+} catch (err) {
+	const noop = async () => {};
+	warmupClassifier = noop;
+	warmupOCR = noop;
+	warmupMinimap = noop;
+	terminateOCR = noop;
+	console.error('Server-side scan pipeline failed to load (Sharp?):', err instanceof Error ? err.message : err);
+}
 import { resolveSession, SESSION_COOKIE_NAME } from '$lib/server/auth.js';
 import { logger } from '$lib/server/logger.js';
 import { initTelemetry } from '$lib/server/telemetry.js';
