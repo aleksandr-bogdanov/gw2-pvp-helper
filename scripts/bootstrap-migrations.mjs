@@ -7,7 +7,11 @@
  */
 import postgres from 'postgres';
 import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(__dirname, '..');
 const sql = postgres(process.env.DATABASE_URL, { max: 1 });
 
 try {
@@ -29,7 +33,7 @@ try {
 	}
 
 	// Read the journal to get migration hashes
-	const journal = JSON.parse(readFileSync('drizzle/meta/_journal.json', 'utf-8'));
+	const journal = JSON.parse(readFileSync(resolve(ROOT, 'drizzle/meta/_journal.json'), 'utf-8'));
 
 	// Mark migrations 0000-0011 as already applied
 	for (const entry of journal.entries) {
