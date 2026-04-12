@@ -38,6 +38,7 @@ GW2 PvP match scouting app. Paste a scoreboard screenshot → CV pipeline detect
 - Game data (specs, weapons, maps) loaded from `data/*.json`, never hardcoded.
 - **No Python in production.** Experiments live in `../gw2-research/`.
 - `data/` files accessed at runtime via `resolve(process.cwd(), 'data', ...)` — NOT `__dirname` relative paths (breaks in adapter-node builds).
+- **After changing `package.json`, always run `bun install`** to update `bun.lock` before committing. Railway uses `--frozen-lockfile` — a stale lockfile breaks the build.
 
 ## Design
 
