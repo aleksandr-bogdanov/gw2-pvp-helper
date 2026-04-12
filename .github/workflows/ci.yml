@@ -10,11 +10,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # SvelteKit inlines $env/static/private at build time, so these must be set
-  # even for CI builds that never connect to real services.
-  DATABASE_URL: postgres://ci:ci@localhost:5432/ci
-  ANTHROPIC_API_KEY: sk-ant-ci-dummy-key
 
 jobs:
   typecheck:

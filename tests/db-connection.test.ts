@@ -15,7 +15,7 @@ describe('Database connection pooling', () => {
 			'utf-8'
 		);
 		// Verify the postgres constructor is called with max: 10
-		expect(source).toMatch(/postgres\(DATABASE_URL,\s*\{\s*max:\s*10\s*\}\)/);
+		expect(source).toMatch(/postgres\(env\.DATABASE_URL!,\s*\{\s*max:\s*10\s*\}\)/);
 	});
 
 	it('max connections is explicitly 10, not any other value', () => {

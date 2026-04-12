@@ -10,9 +10,7 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
-# SvelteKit inlines $env/static/private at build time.
-# These are dummy placeholders — real values come from Railway env vars at runtime.
-RUN DATABASE_URL=postgres://x:x@localhost/x ANTHROPIC_API_KEY=placeholder bun run build
+RUN bun run build
 
 # --- Production stage ---
 FROM node:22-alpine
