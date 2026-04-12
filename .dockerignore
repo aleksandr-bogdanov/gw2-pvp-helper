@@ -9,4 +9,4 @@ static/screenshots/
 .gitignore
 *.md
 MEMORY/
-drizzle/meta/
+drizzle/meta/0*_snapshot.json
