@@ -85,6 +85,13 @@
       "when": 1773948000000,
       "tag": "0011_auth_password_login",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776037065436,
+      "tag": "0012_gw2_api_key_auth",
+      "breakpoints": true
     }
   ]
 }

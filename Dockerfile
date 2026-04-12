@@ -21,9 +21,11 @@ COPY --from=builder /app/build ./build
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
-# Drizzle schema push runs as pre-deploy command (railway.toml)
+# Drizzle migrate runs as pre-deploy command (railway.toml)
 COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/src/lib/server/db/schema.ts ./src/lib/server/db/schema.ts
+COPY --from=builder /app/scripts/bootstrap-migrations.mjs ./scripts/bootstrap-migrations.mjs
 
 # Data files for prompt templates + reference icons
 COPY --from=builder /app/data ./data

@@ -30,7 +30,7 @@ GW2 PvP match scouting app. Paste a scoreboard screenshot → CV pipeline detect
 
 - **Svelte 5 runes only** (`$state`, `$derived`, `$effect`, `$props`). No Svelte 4 syntax.
 - **SvelteKit server routes** for all API endpoints. No Express/Fastify.
-- **Drizzle query builder** for all DB access. No raw SQL strings.
+- **Drizzle query builder** for all DB access. No raw SQL strings. **Schema changes require `drizzle-kit generate`** to create a migration — never use `drizzle-kit push` in production.
 - **TypeScript strict mode**. No `any` except Anthropic SDK interfaces.
 - **SSE for streaming**, not WebSockets.
 - **`Ctrl+V` paste** must work globally (not just focused inputs).
