@@ -6,7 +6,8 @@ WORKDIR /app
 RUN npm install -g bun
 
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile && \
+    npm install --os=linux --libc=musl --cpu=x64 sharp
 
 COPY . .
 
