@@ -9,7 +9,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 # Sharp needs platform-specific native binaries; bun lockfile may pin the wrong platform.
 # Explicitly install the linux-x64 musl variant for Alpine.
-RUN bun add @img/sharp-linux-x64
+RUN bun add @img/sharp-linuxmusl-x64
 
 COPY . .
 
