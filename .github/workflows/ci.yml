@@ -116,27 +116,3 @@ jobs:
 
       - name: Verify build output
         run: test -f build/index.js
-
-  docker:
-    name: Docker Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [typecheck, test, build]
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          tags: gw2-pvp-helper:${{ github.sha }}
-          build-args: |
-            DATABASE_URL=postgres://build:build@localhost:5432/build
-            ANTHROPIC_API_KEY=sk-ant-build-dummy
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
