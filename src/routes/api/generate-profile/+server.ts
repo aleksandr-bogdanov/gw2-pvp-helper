@@ -166,6 +166,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	// --- Usage limit check (after validation, so invalid requests don't consume credits) ---
 	let activeClient = anthropic;
+	let activeModel = 'claude-opus-4-6';
 	let shouldRestoreOnError = false;
 
 	if (userId) {
@@ -179,6 +180,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		if (usage.isByok && usage.apiKey) {
 			activeClient = new Anthropic({ apiKey: usage.apiKey });
+			activeModel = usage.model ?? 'claude-opus-4-6';
 		} else {
 			// Atomic decrement — returns -1 if another request already consumed the last call
 			const remaining = await decrementProfileGens(userId);
@@ -239,7 +241,7 @@ ${weaknesses ? `What gets them killed most often:\n${weaknesses}` : ''}`;
 	let stream: Awaited<ReturnType<typeof activeClient.messages.stream>>;
 	try {
 		stream = await activeClient.messages.stream({
-			model: 'claude-opus-4-6',
+			model: activeModel,
 			max_tokens: 3000,
 			system: systemPrompt,
 			messages: [{ role: 'user', content: userMessage }]
@@ -260,6 +262,7 @@ ${weaknesses ? `What gets them killed most often:\n${weaknesses}` : ''}`;
 	}
 
 	const encoder = new TextEncoder();
+	let aborted = false;
 
 	return new Response(
 		new ReadableStream({
@@ -267,6 +270,7 @@ ${weaknesses ? `What gets them killed most often:\n${weaknesses}` : ''}`;
 				let fullText = '';
 				try {
 					for await (const event of stream) {
+						if (aborted) break;
 						if (
 							event.type === 'content_block_delta' &&
 							event.delta.type === 'text_delta'
@@ -310,6 +314,11 @@ ${weaknesses ? `What gets them killed most often:\n${weaknesses}` : ''}`;
 				} finally {
 					controller.close();
 				}
+			},
+			cancel() {
+				aborted = true;
+				stream.abort();
+				logger.info({ event: 'profile_gen_client_disconnected', userId }, 'Client disconnected, Anthropic stream aborted');
 			}
 		}),
 		{

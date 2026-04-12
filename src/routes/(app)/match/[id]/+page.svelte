@@ -811,6 +811,19 @@
 
 		try {
 			const mapInfo = maps.find(m => m.id === selectedMap);
+			// Fetch active profile ID for advice context
+			let profileId: number | undefined;
+			try {
+				const profileRes = await fetch('/api/profiles');
+				if (profileRes.ok) {
+					const profiles = await profileRes.json();
+					const active = profiles.find((p: { isActive: boolean }) => p.isActive);
+					if (active) profileId = active.id;
+				}
+			} catch {
+				// non-critical — advice works without profile
+			}
+
 			const res = await fetch('/api/advice', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -818,7 +831,9 @@
 					myTeam: myTeam,
 					enemyTeam: enemyTeam,
 					map: mapInfo,
-					userTeamColor
+					userTeamColor,
+					profileId,
+					matchId
 				}),
 				signal: adviceAbortController?.signal
 			});
@@ -1867,7 +1882,10 @@
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer animate-fade-in"
 		onclick={() => (zoomedScreenshot = null)}
+		onkeydown={(e) => { if (e.key === 'Escape') zoomedScreenshot = null; }}
 		role="dialog"
+		aria-modal="true"
+		aria-label="Screenshot zoom"
 		tabindex="-1"
 	>
 		<img

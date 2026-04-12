@@ -34,7 +34,7 @@ function resolveScreenshotPath(hash: string | null): string | null {
 // --- GET: Fetch match history ---
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-	const limit = parseInt(url.searchParams.get('limit') ?? '50');
+	const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50') || 50, 200);
 	const offset = parseInt(url.searchParams.get('offset') ?? '0');
 	const userId = locals.effectiveUserId;
 

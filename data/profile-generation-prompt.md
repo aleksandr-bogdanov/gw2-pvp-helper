@@ -92,7 +92,16 @@ MATCHUP ASSESSMENTS:
   "reaper": { "threat": "...", "tip": "..." },
   "scourge": { "threat": "...", "tip": "..." },
   "harbinger": { "threat": "...", "tip": "..." },
-  "ritualist": { "threat": "...", "tip": "..." }
+  "ritualist": { "threat": "...", "tip": "..." },
+  "core_guardian": { "threat": "...", "tip": "..." },
+  "core_revenant": { "threat": "...", "tip": "..." },
+  "core_warrior": { "threat": "...", "tip": "..." },
+  "core_engineer": { "threat": "...", "tip": "..." },
+  "core_ranger": { "threat": "...", "tip": "..." },
+  "core_thief": { "threat": "...", "tip": "..." },
+  "core_elementalist": { "threat": "...", "tip": "..." },
+  "core_mesmer": { "threat": "...", "tip": "..." },
+  "core_necromancer": { "threat": "...", "tip": "..." }
 }
 ```
 

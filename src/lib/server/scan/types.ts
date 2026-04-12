@@ -9,7 +9,7 @@
 export type UISize = 'small' | 'normal' | 'large' | 'larger';
 
 /** PvP game mode — determines scoreboard layout (different column offsets) */
-export type GameMode = 'conquest' | 'push';
+export type GameMode = 'conquest' | 'push' | 'stronghold';
 
 /** Result of anchor detection (X close button template matching) */
 export interface AnchorResult {

@@ -94,7 +94,8 @@ export const TEMPLATE_SIZES: Record<UISize, number> = {
 };
 
 export function getLayout(uiSize: UISize, mode: GameMode): LayoutPreset {
-	const key = `${uiSize}-${mode}`;
+	const effectiveMode = mode === 'stronghold' ? 'conquest' : mode;
+	const key = `${uiSize}-${effectiveMode}`;
 	const layout = LAYOUTS[key];
 	if (!layout) {
 		throw new Error(`Unknown layout: ${key}`);

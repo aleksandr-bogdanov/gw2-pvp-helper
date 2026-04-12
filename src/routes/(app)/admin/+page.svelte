@@ -19,17 +19,26 @@
 
 	let stats = $state<Stats | null>(null);
 	let loading = $state(true);
+	let error = $state<string | null>(null);
 
-	onMount(async () => {
+	async function loadStats() {
+		loading = true;
+		error = null;
 		try {
 			const res = await fetch('/api/admin/stats');
 			if (res.ok) {
 				stats = await res.json();
+			} else {
+				error = 'Failed to load stats (HTTP ' + res.status + ')';
 			}
+		} catch {
+			error = 'Failed to load stats. Check your connection and try again.';
 		} finally {
 			loading = false;
 		}
-	});
+	}
+
+	onMount(() => loadStats());
 
 	let maxAdvice = $derived(stats ? stats.totalUsers * stats.freeAdviceLimit : 0);
 	let advicePct = $derived(maxAdvice > 0 && stats ? Math.min((stats.totalAdviceCalls / maxAdvice) * 100, 100) : 0);
@@ -200,4 +209,6 @@
 			</div>
 		</div>
 	</div>
+{:else}
+	<p class="text-center text-red-400 py-8">Failed to load stats. <button onclick={loadStats} class="underline cursor-pointer">Retry</button></p>
 {/if}

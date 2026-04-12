@@ -238,6 +238,7 @@
 	}
 
 	async function deletePlayer(player: PlayerRecord) {
+		if (!confirm('Delete this player and all their history?')) return;
 		const res = await fetch('/api/players', {
 			method: 'DELETE',
 			headers: { 'Content-Type': 'application/json' },

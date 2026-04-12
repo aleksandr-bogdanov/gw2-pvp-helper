@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, integer, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, boolean, integer, timestamp, uuid, jsonb, index } from 'drizzle-orm/pg-core';
 
 // --- Users & Auth ---
 
@@ -49,7 +49,9 @@ export const userProfiles = pgTable('user_profiles', {
 	matchups: jsonb('matchups'),
 	isActive: boolean('is_active').default(false),
 	createdAt: timestamp('created_at').defaultNow()
-});
+}, (table) => [
+	index('user_profiles_user_id_idx').on(table.userId)
+]);
 
 export const players = pgTable('players', {
 	id: serial('id').primaryKey(),
@@ -80,7 +82,10 @@ export const matches = pgTable('matches', {
 	adviceText: text('advice_text'),
 	adviceRaw: text('advice_raw'),
 	timestamp: timestamp('timestamp').defaultNow()
-});
+}, (table) => [
+	index('matches_user_id_idx').on(table.userId),
+	index('matches_screenshot_hash_idx').on(table.screenshotHash)
+]);
 
 // --- Training Data ---
 
@@ -98,7 +103,9 @@ export const trainingSamples = pgTable('training_samples', {
 	anchorPosition: jsonb('anchor_position'),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	reviewedByAdmin: boolean('reviewed_by_admin').default(false).notNull()
-});
+}, (table) => [
+	index('training_samples_user_id_idx').on(table.userId)
+]);
 
 // --- Minimap References ---
 
@@ -122,4 +129,6 @@ export const matchPlayers = pgTable('match_players', {
 	isUser: boolean('is_user').default(false),
 	ratingSkill: integer('rating_skill'),
 	ratingFriendly: integer('rating_friendly')
-});
+}, (table) => [
+	index('match_players_match_id_idx').on(table.matchId)
+]);

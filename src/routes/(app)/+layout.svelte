@@ -94,6 +94,7 @@
 	}
 
 	async function handlePaste(e: ClipboardEvent) {
+		if (scanning) return;
 		const items = e.clipboardData?.items;
 		if (!items) return;
 
@@ -138,6 +139,7 @@
 	function handleDrop(e: DragEvent) {
 		e.preventDefault();
 		dragOver = false;
+		if (scanning) return;
 
 		const files = e.dataTransfer?.files;
 		if (!files) return;

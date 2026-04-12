@@ -6,6 +6,10 @@
  */
 import type { RawImage, GameMode } from './types.js';
 
+// Minimap crop region constants — reference values for 3440x1440 resolution.
+// Scaled proportionally at runtime for other resolutions.
+const REFERENCE_WIDTH = 3440;
+const REFERENCE_HEIGHT = 1440;
 const CROP_X = 3100;
 const CROP_Y = 1100;
 const CROP_W = 300;
@@ -23,7 +27,7 @@ const MAP_MODES: Record<string, GameMode> = {
 	revenge_of_the_capricorn: 'conquest',
 	spirit_watch: 'conquest',
 	sunjiang_backstreets: 'push',
-	battle_of_champions_dusk: 'stronghold' as GameMode
+	battle_of_champions_dusk: 'stronghold'
 };
 
 const HIST_BINS = 8;
@@ -116,10 +120,18 @@ function computeRotationInvariantFeatures(spatial: Float64Array): Float64Array {
  * Extract minimap thumbnail from RGB image using Canvas.
  */
 function extractMinimapThumb(rgbImage: RawImage): Float64Array {
-	const x1 = Math.min(CROP_X, rgbImage.width);
-	const y1 = Math.min(CROP_Y, rgbImage.height);
-	const x2 = Math.min(CROP_X + CROP_W, rgbImage.width);
-	const y2 = Math.min(CROP_Y + CROP_H, rgbImage.height);
+	// Scale crop region proportionally for non-reference resolutions
+	const scaleX = rgbImage.width / REFERENCE_WIDTH;
+	const scaleY = rgbImage.height / REFERENCE_HEIGHT;
+	const cropX = Math.round(CROP_X * scaleX);
+	const cropY = Math.round(CROP_Y * scaleY);
+	const cropW = Math.round(CROP_W * scaleX);
+	const cropH = Math.round(CROP_H * scaleY);
+
+	const x1 = Math.min(cropX, rgbImage.width);
+	const y1 = Math.min(cropY, rgbImage.height);
+	const x2 = Math.min(cropX + cropW, rgbImage.width);
+	const y2 = Math.min(cropY + cropH, rgbImage.height);
 	const w = x2 - x1;
 	const h = y2 - y1;
 

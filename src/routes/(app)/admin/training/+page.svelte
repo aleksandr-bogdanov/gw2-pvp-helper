@@ -264,7 +264,10 @@
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
 		onclick={(e) => { if (e.target === e.currentTarget) selectedSample = null; }}
+		onkeydown={(e) => { if (e.key === 'Escape') selectedSample = null; }}
 		role="dialog"
+		aria-modal="true"
+		aria-label="Training sample detail"
 		tabindex="-1"
 	>
 		<div class="glass max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-xl p-6 border border-(--color-border) shadow-xl animate-modal-in m-4">

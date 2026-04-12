@@ -109,7 +109,7 @@ function preprocessNameCrop(crop: RawImage): OffscreenCanvas {
 			0.114 * scaled.data[i * 4 + 2]
 		);
 		const inverted = 255 - gray;
-		const thresholded = inverted > 128 ? 0 : 255;
+		const thresholded = inverted > 128 ? 255 : 0;
 		scaled.data[i * 4] = thresholded;
 		scaled.data[i * 4 + 1] = thresholded;
 		scaled.data[i * 4 + 2] = thresholded;
@@ -164,6 +164,18 @@ export async function recognizeName(crop: RawImage): Promise<OCRResult> {
 		text: result.data.text.trim(),
 		confidence: result.data.confidence
 	};
+}
+
+/**
+ * Terminate the OCR worker to free memory.
+ * Call when scanning is done and the worker is no longer needed.
+ */
+export async function terminateOCR(): Promise<void> {
+	if (ocrWorker) {
+		await ocrWorker.terminate();
+		ocrWorker = null;
+		ocrLoading = null;
+	}
 }
 
 /**

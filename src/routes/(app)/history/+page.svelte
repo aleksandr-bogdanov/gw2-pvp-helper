@@ -100,6 +100,7 @@
 
 	// --- Delete match ---
 	async function deleteMatch(match: MatchRecord) {
+		if (!confirm('Delete this match permanently?')) return;
 		deletingMatch = match.matchId;
 		try {
 			const res = await fetch('/api/match', {
@@ -770,7 +771,10 @@
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer animate-fade-in"
 		onclick={() => (zoomedScreenshot = null)}
+		onkeydown={(e) => { if (e.key === 'Escape') zoomedScreenshot = null; }}
 		role="dialog"
+		aria-modal="true"
+		aria-label="Match screenshot"
 		tabindex="-1"
 	>
 		<img

@@ -31,6 +31,7 @@ export async function lookupPlayers(names: string[], userId: number | null): Pro
 		profession: string | null;
 		spec: string | null;
 		role: string | null;
+		spec_source: string | null;
 		times_seen: number;
 		wins_against: number;
 		losses_against: number;
@@ -74,6 +75,7 @@ export async function lookupPlayers(names: string[], userId: number | null): Pro
 			l.profession,
 			l.spec,
 			l.role,
+			p.spec_source,
 			s.times_seen,
 			s.wins_against,
 			s.losses_against,
@@ -94,7 +96,7 @@ export async function lookupPlayers(names: string[], userId: number | null): Pro
 			profession: row.profession,
 			spec: row.spec,
 			role: row.role,
-			spec_source: null,
+			spec_source: row.spec_source ?? null,
 			times_seen: row.times_seen,
 			wins_against: row.wins_against,
 			losses_against: row.losses_against,

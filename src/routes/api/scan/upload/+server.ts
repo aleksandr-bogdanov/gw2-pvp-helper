@@ -35,6 +35,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		throw error(400, 'Missing image or scanResult');
 	}
 
+	if (!Array.isArray(scanResult.red_team) || !Array.isArray(scanResult.blue_team)) {
+		throw error(400, 'Invalid scanResult shape: red_team and blue_team must be arrays');
+	}
+
 	// Decode and validate
 	const imageBuffer = Buffer.from(image, 'base64');
 
@@ -92,7 +96,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			scanResult: {
 				red_team: scanResult.red_team,
 				blue_team: scanResult.blue_team,
-				map_detection: scanResult.detected_map,
+				detected_map: scanResult.detected_map ?? null,
+				game_mode: scanResult.detected_map?.mode ?? null
 			},
 			confidenceScores,
 			anchorPosition: null

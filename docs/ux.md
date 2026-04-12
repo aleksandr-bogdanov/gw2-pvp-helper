@@ -17,6 +17,7 @@ The design must serve *both* without making cold start tedious or warm state clu
 ```
 user_profiles          (your characters — you may play multiple)
 ├── id                 PK (auto-increment)
+├── userId             FK → users (owner of this profile)
 ├── character_name     "Allenheim" / "Paragonname"
 ├── profession         "thief" / "warrior"
 ├── spec               "daredevil" / "paragon"
@@ -29,7 +30,9 @@ user_profiles          (your characters — you may play multiple)
 └── created_at
 
 players                (every OTHER player you've ever seen)
-├── character_name     PK
+├── id                 PK (auto-increment)
+├── userId             FK → users (who recorded this player)
+├── character_name     unique per user
 ├── profession         always detectable from icon shape
 ├── spec               last confirmed spec
 ├── role               last confirmed role (dps/support/heal)
@@ -41,6 +44,7 @@ players                (every OTHER player you've ever seen)
 
 matches
 ├── match_id           PK (uuid)
+├── userId             FK → users (who played this match)
 ├── timestamp
 ├── user_profile_id    FK → user_profiles (which character you played this match)
 ├── user_team_color    "red" | "blue"
@@ -65,6 +69,12 @@ match_players
 
 ## Screen Flow
 
+### Landing Page + Login
+
+Unauthenticated users see a landing page explaining the app. Login uses a **GW2 API key**: the user creates an API key at `account.arena.net` and pastes it into the login form. The server validates the key against the GW2 API (`/v2/account`) to confirm it's real and extracts the account name (e.g. `Korsvian.6794`). On success, a session is created and the user proceeds to Screen 0.
+
+All data (profiles, players, matches) is scoped to the authenticated user via `userId` foreign keys. Admin accounts are designated by the `ADMIN_ACCOUNTS` env var.
+
 ### Screen 0: Idle State (Between Matches)
 
 ```
@@ -88,7 +98,7 @@ match_players
 - Drag-and-drop also works.
 - **Character toggle** at the top — shows all entries from `user_profiles`. The active character determines which system prompt layers are assembled for advice. Daredevil gets kill priorities and stolen skill tips; Paragon gets babysitting targets and banner timing.
 - **Settings gear [⚙]** — opens the profile management screen where you can add/edit/delete character profiles.
-- **Auto-detect from screenshot**: Haiku identifies which player is you (the one with `is_user: true`). If Haiku reads your profession as Warrior this match, the app auto-switches to the Paragon profile. If Thief, switches to Daredevil. No manual toggle needed in most cases — just a fallback if auto-detect fails.
+- **Auto-detect from screenshot**: The CV pipeline identifies which player is you (the one with `is_user: true`). If it reads your profession as Warrior this match, the app auto-switches to the Paragon profile. If Thief, switches to Daredevil. No manual toggle needed in most cases -- just a fallback if auto-detect fails.
 - Subtle session stats at the bottom — not distracting, just context.
 
 **First launch**: If no profiles exist, the app redirects to the **Profile Creation Flow** (see below) before anything else. The app cannot give advice without knowing your build — profile creation is not optional, it's the first thing you do.
@@ -189,7 +199,7 @@ Free text in the user's own words. Can be as brief as "I just started, I don't k
 
 #### Step 3: Claude Generates the Profile Prompt
 
-Clicking "Generate Profile" sends a one-time API call to Claude Sonnet with a **profile generation** system prompt (separate from the tactical advisor prompt). See **System Prompt Architecture → Profile Generation Prompt** for the full prompt.
+Clicking "Generate Profile" sends a one-time API call to Claude Opus (`claude-opus-4-6`) with a **profile generation** system prompt (separate from the tactical advisor prompt). See **System Prompt Architecture -> Profile Generation Prompt** for the full prompt.
 
 Claude receives the structured form data + free text description and returns a formatted profile covering: build summary, key offensive/defensive tools (with correct GW2 skill names inferred from the description), stolen skills (if Thief), strengths, weaknesses, and a role description. This output becomes the `profile_prompt` stored in the DB.
 
@@ -229,7 +239,7 @@ Three options:
 
 ### Screen 1: Processing (1-2 seconds)
 
-When you paste, the screenshot goes to Haiku API immediately. During processing:
+When you paste, the screenshot is processed by the **client-side CV pipeline** (Canvas + tesseract-wasm + HOG k-NN classifier) entirely in the browser. If client-side processing fails or returns low confidence, the image is sent to the server-side fallback (Sharp + Tesseract.js). During processing:
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -240,7 +250,7 @@ When you paste, the screenshot goes to Haiku API immediately. During processing:
 └─────────────────────────────────────────────────┘
 ```
 
-This is intentionally minimal. No skeleton loaders, no fake progress bars. Just a clear "working" state. Should be 1-2 seconds max with Haiku.
+This is intentionally minimal. No skeleton loaders, no fake progress bars. Just a clear "working" state. Should be 1-2 seconds max with the client-side pipeline.
 
 ---
 
@@ -313,10 +323,10 @@ Each player row has one of four states, shown via a status badge on the right:
 
 | State | Badge | Meaning | Interaction needed? |
 |-------|-------|---------|-------------------|
-| **History match** | `✓ seen 3x` (green) | Player seen before, spec loaded from DB with `corrected` source | None — auto-confirmed |
+| **History match** | `✓ seen 3x` (green) | Player seen before, spec loaded from DB with `corrected` source | None -- auto-confirmed |
 | **History (detected only)** | `~ seen 2x` (amber) | Seen before but spec was never manually corrected | Glance to confirm |
-| **New + detected** | `~ detected` (amber) | First time seeing this player, LLM guessed the spec | May need correction |
-| **New + unknown** | `? NEW` (gray) | First time, LLM couldn't determine spec (or profession only) | Needs spec assignment |
+| **New + detected** | `~ detected` (amber) | First time seeing this player, CV pipeline classified the spec | May need correction |
+| **New + unknown** | `? NEW` (gray) | First time, CV pipeline couldn't determine spec (or profession only) | Needs spec assignment |
 
 #### Spec Correction: One-Tap Cycling
 
@@ -367,12 +377,12 @@ Specs with only one common PvP build show no toggle — the role is implied. Thi
 
 The app does NOT auto-generate advice. The pipeline is:
 
-1. Haiku parses → roster populates (with history pre-fill where available)
+1. CV pipeline parses screenshot -> roster populates (with history pre-fill where available)
 2. You scan, click to correct any wrong specs, toggle roles
 3. You pick the map
-4. You hit **Get Advice** → Claude Sonnet receives the *corrected* data
+4. You hit **Get Advice** -> Claude Sonnet receives the *corrected* data
 
-**This means**: Corrections happen on clean, accurate data. You never get advice based on a wrong Haiku guess that you haven't noticed yet. The API call is a deliberate action, not a side effect.
+**This means**: Corrections happen on clean, accurate data. You never get advice based on a wrong CV detection that you haven't noticed yet. The API call is a deliberate action, not a side effect.
 
 **On a warm match** (most players known): paste → glance (all green) → select map → Enter → advice streams in. ~8-10 seconds of interaction, then ~3-4 seconds for Sonnet to respond.
 
@@ -440,7 +450,7 @@ After you click **Get Advice**, the briefing streams in below the button via Cla
 const systemPrompt = buildSystemPrompt(activeProfile);
 
 const response = await anthropic.messages.create({
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   max_tokens: 1024,
   stream: true,
   system: systemPrompt,
@@ -676,7 +686,7 @@ If you ignore it and paste a new screenshot, the previous match result stays nul
 | Step | Time | Action |
 |------|------|--------|
 | Paste screenshot | 0s | Ctrl+V |
-| API processing (Haiku) | 2s | Haiku parses image |
+| CV pipeline processing | 2s | Client-side scan parses image |
 | Roster appears | 2s | Scan all 9 rows |
 | Correct 2-3 specs | 8s | Click spec names to cycle (~2s each) |
 | Set 1-2 roles | 4s | Tap DPS/SUPP toggles |
@@ -691,7 +701,7 @@ If you ignore it and paste a new screenshot, the previous match result stays nul
 | Step | Time | Action |
 |------|------|--------|
 | Paste screenshot | 0s | Ctrl+V |
-| API processing (Haiku) | 2s | Haiku parses image |
+| CV pipeline processing | 2s | Client-side scan parses image |
 | Roster appears | 2s | Glance — all green checkmarks |
 | Correct 0-1 specs | 1s | Maybe one new player |
 | Select map | 1s | Pick from dropdown |
@@ -708,17 +718,18 @@ If you ignore it and paste a new screenshot, the previous match result stays nul
 ┌──────────────┐     ┌───────────────┐     ┌──────────────┐
 │   Browser     │────▶│  API Server   │────▶│  Postgres    │
 │  (SvelteKit)  │◀────│  (SvelteKit   │◀────│              │
-│               │     │   server      │     │  players     │
-│  Ctrl+V       │     │   routes)     │     │  matches     │
-│  paste zone   │     │               │     │  match_plyr  │
-│  roster UI    │     │  Haiku ──────┐│     │  user_profs  │
-│  map selector │     │  (scan)      ││     └──────────────┘
-│  advice view  │     │              ││              │
-│  (streamed)   │     │  Sonnet ─────┤│     ┌────────┴─────┐
-│  profile mgmt │     │  (advice,    ││     │  Data Files  │
-│               │     │   streamed)  ││     │              │
+│               │     │   server      │     │  users       │
+│  Ctrl+V       │     │   routes)     │     │  players     │
+│  paste zone   │     │               │     │  matches     │
+│  CV pipeline  │     │  CV fallback─┐│     │  match_plyr  │
+│  (client-side)│     │  (Sharp+     ││     │  user_profs  │
+│  roster UI    │     │   Tesseract) ││     └──────────────┘
+│  map selector │     │              ││              │
+│  advice view  │     │  Sonnet ─────┤│     ┌────────┴─────┐
+│  (streamed)   │     │  (advice,    ││     │  Data Files  │
+│  profile mgmt │     │   streamed)  ││     │              │
 │               │     │              ││     │  universal-  │
-│               │     │  Sonnet ─────┤│     │  game-know.. │
+│               │     │  Opus ───────┤│     │  game-know.. │
 │               │     │  (profile    ││     │  output-fmt  │
 │               │     │   gen, 1x)   ││     │  weapons.json│
 └──────────────┘     └──────────────┘│     └──────────────┘
@@ -731,18 +742,22 @@ If you ignore it and paste a new screenshot, the previous match result stays nul
 ```
 PHASE 1 — SCAN (automatic on paste)
 1. User pastes screenshot
-2. Browser sends image to server: POST /api/scan
-3. Server calls Anthropic Haiku API with the image
-4. Haiku returns parsed JSON (team compositions + which player is_user)
-5. Server detects active character from is_user's profession:
-   - If profession matches an existing user_profile → auto-set as active
-   - If no match → prompt to create new profile
-6. Server enriches with player history from Postgres:
+2. Browser runs client-side CV pipeline (Canvas + tesseract-wasm + HOG k-NN):
+   - Anchor detection (NCC template matching for X button)
+   - Icon classification (HOG features + cosine distance vs reference icons)
+   - OCR (tesseract-wasm with PSM SINGLE_LINE)
+   - Minimap map detection (16x16 thumbnail cosine similarity)
+3. If client-side fails or low confidence, falls back to server: POST /api/scan
+   (server uses Sharp + Tesseract.js)
+4. Pipeline returns parsed JSON (team compositions + which player is_user)
+5. Browser detects active character from is_user's profession:
+   - If profession matches an existing user_profile -> auto-set as active
+   - If no match -> prompt to create new profile
+6. Browser enriches with player history from Postgres (via API):
    - For each character_name, check players table
    - If found: attach historical spec, role, times_seen, win/loss
-   - If not found: mark as NEW, use Haiku's detected spec
-7. Server returns enriched roster + active character to browser
-8. Browser renders roster — user corrects specs/roles, picks map
+   - If not found: mark as NEW, use CV-detected spec
+7. Browser renders roster -- user corrects specs/roles, picks map
 
 PHASE 2 — ADVICE (on explicit button click)
 9. User clicks "Get Advice" (or presses Enter)
@@ -765,9 +780,9 @@ Given that you're already deep in SvelteKit + Tauri world from Shoom Studio:
 - **Backend**: SvelteKit server routes (no separate API server)
 - **DB**: Postgres (as specified)
 - **ORM**: Drizzle (lightweight, TypeScript-native, great with SvelteKit)
-- **Scan API**: Anthropic Haiku (fast, cheap — image → structured JSON)
-- **Advice API**: Anthropic Sonnet (smart, streamed — assembled system prompt + roster → tactical text)
-- **Profile Generation API**: Anthropic Sonnet (one-time per character — build info → structured profile prompt)
+- **Scan**: Client-side CV pipeline (Canvas + tesseract-wasm + HOG k-NN) with server-side fallback (Sharp + Tesseract.js)
+- **Advice API**: Anthropic Sonnet (`claude-sonnet-4-6`, streamed -- assembled system prompt + roster -> tactical text)
+- **Profile Generation API**: Anthropic Opus (`claude-opus-4-6`, one-time per character -- build info -> structured profile prompt)
 - **Streaming**: Server-Sent Events (SSE) from server to browser for Sonnet output
 - **Deploy**: Docker Compose (SvelteKit + Postgres) — runs locally
 
@@ -837,17 +852,17 @@ Core (no elite spec) professions: show role toggle only for Guardian (DPS/BUNKER
 
 **Duplicate character names**: GW2 names are unique per account. No duplicates possible.
 
-**Player switches spec between matches**: The `players` table stores `last_seen_spec`. If Haiku detects a different profession than what's in history, the history is overridden (people reroll). If same profession but different spec detected, show the history spec but with an amber `~ changed?` indicator.
+**Player switches spec between matches**: The `players` table stores `last_seen_spec`. If the CV pipeline detects a different profession than what's in history, the history is overridden (people reroll). If same profession but different spec detected, show the history spec but with an amber `~ changed?` indicator.
 
-**Unrecognized screenshot format**: If Haiku can't parse (wrong game, cropped weirdly, etc.), show a clear error: *"Couldn't read scoreboard. Make sure the full team list is visible."* Stay on paste screen.
+**Unrecognized screenshot format**: If the CV pipeline can't parse (wrong game, cropped weirdly, etc.), show a clear error: *"Couldn't read scoreboard. Make sure the full team list is visible."* Stay on paste screen.
 
 **Map detection**: Map selection is now a required step before getting advice. The dropdown is always visible on the roster screen. If you don't select a map (leaving the default "Conquest generic"), the advice will still work — it just gives standard 3-point rotation advice without map-specific mechanics.
 
 **Alt accounts / character switching**: The scoreboard only shows character names, not account names. Account names (`Name.1234` format) require right-clicking each player individually — not feasible in 30 seconds. So we track by character_name. If a player switches characters between matches, they appear as a new entry. Acceptable tradeoff — most PvP players stick to one character per session. **Phase 5 polish**: A manual "link characters" feature could let you associate multiple character names to one player after a match when you have time to right-click and check account names.
 
-**Haiku elite spec icon detection**: The GW2 PvP scoreboard shows unique icons per elite spec (45 total: 9 base + 4 elite specs each), not just the 9 base profession icons. This means Haiku could potentially detect the exact elite spec, not just the profession — massively reducing correction clicks. **Recommendation**: Include reference images of all 45 spec icons in the Haiku parse prompt, especially the 9 VoE spec icons since they're newest and least likely in Haiku's training data. Even with good icon detection, keep spec cycling as fallback — Haiku won't be 100% accurate on ~20px monochrome silhouettes.
+**Elite spec icon detection**: The GW2 PvP scoreboard shows unique icons per elite spec (45 total: 9 base + 4 elite specs each), not just the 9 base profession icons. The client-side HOG k-NN classifier detects exact elite specs at 97.5% accuracy using 64x64 reference icons from the GW2 Wiki. Spec cycling remains as fallback for misclassifications.
 
-**User plays a different character**: If Haiku detects you as Warrior (not Thief), the app auto-switches the active profile to whichever profile matches that profession. If no matching profile exists, the app prompts to create one via the Profile Creation Flow. The system prompt assembled for Claude changes entirely based on active character — Layer 2 (your build) and Layer 3 (output format) are both swapped.
+**User plays a different character**: If the CV pipeline detects you as Warrior (not Thief), the app auto-switches the active profile to whichever profile matches that profession. If no matching profile exists, the app prompts to create one via the Profile Creation Flow. The system prompt assembled for Claude changes entirely based on active character -- Layer 2 (your build) and Layer 3 (output format) are both swapped.
 
 ---
 
@@ -890,7 +905,7 @@ This spec defines the UX flow and architecture. The actual game knowledge lives 
 ## Implementation Priority
 
 **Phase 1 — Scan Pipeline (get data flowing)**
-1. Paste → Haiku parse → display roster (all 45 elite spec icons detectable)
+1. Paste -> CV pipeline parse -> display roster (all 45 elite spec icons detectable)
 2. Spec cycling on click (all 9 professions × 4 elite specs + core)
 3. Role toggle for ambiguous specs (including VoE: Paragon, Luminary, Conduit, Troubadour)
 4. Map selector dropdown (12 maps)
@@ -898,7 +913,7 @@ This spec defines the UX flow and architecture. The actual game knowledge lives 
 **Phase 2a — Profile System (know your build)**
 5. Profile creation form (profession, spec, role, weapons — all from static game data)
 6. Free text playstyle description input
-7. Profile generation API call (Claude Sonnet, one-time per character)
+7. Profile generation API call (Claude Opus, one-time per character)
 8. Profile review + manual edit + save to DB (`profile_prompt` field)
 9. Profile management screen (list, add, edit, delete)
 10. Profile switcher on idle screen
@@ -913,14 +928,14 @@ This spec defines the UX flow and architecture. The actual game knowledge lives 
 
 **Phase 3 — Memory (make it learn)**
 17. Player history (Postgres upsert on every match)
-18. History pre-fill on roster (override Haiku detection with DB data)
+18. History pre-fill on roster (override CV detection with DB data)
 19. Win/loss per player passed into advice prompt
 
 **Phase 4 — Polish (make it fast and pleasant)**
 20. Post-match W/L recording
 21. Win rate display on player rows
 22. Session stats on idle screen
-23. Haiku parse prompt tuning with elite spec icon reference images
+23. CV pipeline tuning with additional reference icons and training data
 24. Universal game knowledge tuning based on meta shifts
 
 **Phase 5 — Nice-to-Have**

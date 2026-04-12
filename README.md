@@ -51,7 +51,7 @@ GitHub push → Railway builds Dockerfile → pre-deploy: drizzle-kit push → h
 ```
 
 - **Project**: `gw2-pvp-helper` on Railway
-- **Services**: SvelteKit app + PostgreSQL 18
+- **Services**: SvelteKit app + PostgreSQL 17
 - **Volume**: 10 GB at `/app/screenshots` (training data)
 - **Domain**: `https://gw2-pvp-helper-production.up.railway.app`
 - **Region**: `europe-west4`
@@ -92,7 +92,7 @@ Set in Railway dashboard (not in code):
 
 ### Database
 
-- Railway Postgres 18, auto-provisioned
+- Railway Postgres 17, auto-provisioned
 - Schema managed by Drizzle ORM (`src/lib/server/db/schema.ts`)
 - Migrations run automatically via `drizzle-kit push` pre-deploy
 - Public URL available for local access: check `DATABASE_PUBLIC_URL` on the Postgres service in Railway dashboard

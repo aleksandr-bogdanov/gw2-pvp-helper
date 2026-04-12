@@ -82,7 +82,6 @@ jobs:
         env:
           DATABASE_URL: postgres://test:test@localhost:5432/gw2_test
           BYOK_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-          INVITE_CODES: "test-code-01,test-code-02"
 
   build:
     name: Build

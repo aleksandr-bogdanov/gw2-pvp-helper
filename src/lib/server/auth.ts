@@ -102,7 +102,7 @@ export async function resolveSession(
 			.set({ lastSeenAt: new Date() })
 			.where(eq(users.id, result.userId))
 			.then(() => {})
-			.catch(() => {});
+			.catch((err) => { console.error('Failed to update lastSeenAt:', err); });
 	}
 
 	return {

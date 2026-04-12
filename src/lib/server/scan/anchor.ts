@@ -259,8 +259,12 @@ function teamColorScore(
 	return Math.min(redCorrect, blueCorrect) / 5;
 }
 
-// Search region — covers all observed anchor positions (1874-2385, 220-356).
+// Search region constants — reference values for 3440x1440 resolution.
+// Covers all observed anchor positions (1874-2385, 220-356).
 // Widened left bound for moved windows. Right bound covers default Larger position.
+// Scaled proportionally at runtime for other resolutions.
+const REFERENCE_WIDTH = 3440;
+const REFERENCE_HEIGHT = 1440;
 const SEARCH_X1 = 1700;
 const SEARCH_Y1 = 100;
 const SEARCH_X2 = 2500;
@@ -293,11 +297,19 @@ export async function findAnchor(
 		);
 	}
 
-	const roiWidth = Math.min(SEARCH_X2, grayImage.width) - SEARCH_X1;
-	const roiHeight = Math.min(SEARCH_Y2, grayImage.height) - SEARCH_Y1;
+	// Scale search region proportionally for non-reference resolutions
+	const scaleX = grayImage.width / REFERENCE_WIDTH;
+	const scaleY = grayImage.height / REFERENCE_HEIGHT;
+	const searchX1 = Math.round(SEARCH_X1 * scaleX);
+	const searchY1 = Math.round(SEARCH_Y1 * scaleY);
+	const searchX2 = Math.round(SEARCH_X2 * scaleX);
+	const searchY2 = Math.round(SEARCH_Y2 * scaleY);
+
+	const roiWidth = Math.min(searchX2, grayImage.width) - searchX1;
+	const roiHeight = Math.min(searchY2, grayImage.height) - searchY1;
 	if (roiWidth <= 0 || roiHeight <= 0) return null;
 
-	const roi = extractROI(grayImage, SEARCH_X1, SEARCH_Y1, roiWidth, roiHeight);
+	const roi = extractROI(grayImage, searchX1, searchY1, roiWidth, roiHeight);
 
 	const DEBUG = process.env.DEBUG_ANCHOR === '1';
 
@@ -318,8 +330,8 @@ export async function findAnchor(
 		const matches = nccMatchAll(roi, tmpl, LOW_THRESHOLD, 3);
 		if (DEBUG) logger.debug({ event: 'anchor_template_match', uiSize: tmpl.uiSize, width: tmpl.image.width, matchCount: matches.length }, `Template ${tmpl.uiSize} (${tmpl.image.width}px): ${matches.length} matches`);
 		for (const m of matches) {
-			const cx = SEARCH_X1 + m.x + Math.floor(tmpl.image.width / 2);
-			const cy = SEARCH_Y1 + m.y + Math.floor(tmpl.image.height / 2);
+			const cx = searchX1 + m.x + Math.floor(tmpl.image.width / 2);
+			const cy = searchY1 + m.y + Math.floor(tmpl.image.height / 2);
 			allCandidates.push({ x: cx, y: cy, score: m.score, uiSize: tmpl.uiSize });
 		}
 	}

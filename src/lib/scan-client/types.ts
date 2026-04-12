@@ -4,7 +4,7 @@
  */
 
 export type UISize = 'small' | 'normal' | 'large' | 'larger';
-export type GameMode = 'conquest' | 'push';
+export type GameMode = 'conquest' | 'push' | 'stronghold';
 
 export interface AnchorResult {
 	x: number;

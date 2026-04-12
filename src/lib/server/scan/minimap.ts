@@ -31,7 +31,12 @@ import { eq } from 'drizzle-orm';
 
 const THUMB_DIR = resolve(process.cwd(), 'data', 'minimap-references', 'thumbs');
 
-/** Minimap crop region — safe inner area shared by all UI sizes at 3440×1440 */
+/** Reference resolution for crop region constants */
+const REFERENCE_WIDTH = 3440;
+const REFERENCE_HEIGHT = 1440;
+
+/** Minimap crop region — safe inner area shared by all UI sizes at 3440x1440.
+ *  Scaled proportionally at runtime for other resolutions. */
 const CROP_X = 3100;
 const CROP_Y = 1100;
 const CROP_W = 300;
@@ -57,9 +62,7 @@ const MAP_MODES: Record<string, GameMode> = {
 	revenge_of_the_capricorn: 'conquest',
 	spirit_watch: 'conquest',
 	sunjiang_backstreets: 'push',
-	// Champion's Dusk is a stronghold map, but stronghold is not a supported mode.
-	// Its scoreboard layout matches conquest, so treat it as conquest.
-	battle_of_champions_dusk: 'conquest'
+	battle_of_champions_dusk: 'stronghold'
 };
 
 /** Number of bins per RGB channel for the color histogram */
@@ -284,11 +287,19 @@ function computeRotationInvariantFeatures(spatial: Float64Array): Float64Array {
  * and downscales to 16×16.
  */
 async function extractMinimapThumb(rgbImage: RawImage): Promise<Float64Array> {
+	// Scale crop region proportionally for non-reference resolutions
+	const scaleX = rgbImage.width / REFERENCE_WIDTH;
+	const scaleY = rgbImage.height / REFERENCE_HEIGHT;
+	const cropX = Math.round(CROP_X * scaleX);
+	const cropY = Math.round(CROP_Y * scaleY);
+	const cropW = Math.round(CROP_W * scaleX);
+	const cropH = Math.round(CROP_H * scaleY);
+
 	// Clamp crop to image bounds
-	const x1 = Math.min(CROP_X, rgbImage.width);
-	const y1 = Math.min(CROP_Y, rgbImage.height);
-	const x2 = Math.min(CROP_X + CROP_W, rgbImage.width);
-	const y2 = Math.min(CROP_Y + CROP_H, rgbImage.height);
+	const x1 = Math.min(cropX, rgbImage.width);
+	const y1 = Math.min(cropY, rgbImage.height);
+	const x2 = Math.min(cropX + cropW, rgbImage.width);
+	const y2 = Math.min(cropY + cropH, rgbImage.height);
 	const w = x2 - x1;
 	const h = y2 - y1;
 

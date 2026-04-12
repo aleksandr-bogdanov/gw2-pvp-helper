@@ -33,6 +33,7 @@ RUN mkdir -p /app/screenshots
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV SCREENSHOTS_DIR=/app/screenshots
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s \

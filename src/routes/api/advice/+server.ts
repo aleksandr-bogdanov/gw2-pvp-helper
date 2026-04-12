@@ -7,7 +7,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { json } from '@sveltejs/kit';
 import type { PlayerInfo, MapInfo, ProfileMatchups } from '$lib/types.js';
-import { checkAdviceUsage, decrementAdviceCalls } from '$lib/server/usage.js';
+import { checkAdviceUsage, decrementAdviceCalls, restoreAdviceCall } from '$lib/server/usage.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { logger } from '$lib/server/logger.js';
 import { getTracer } from '$lib/server/telemetry.js';
@@ -44,8 +44,14 @@ function normalizeMatchups(raw: unknown): ProfileMatchups | null {
 
 // --- Data loading (cached at module level) ---
 
+const fileCache = new Map<string, string>();
 function loadDataFile(filename: string): string {
-	return readFileSync(resolve('data', filename), 'utf-8');
+	let content = fileCache.get(filename);
+	if (!content) {
+		content = readFileSync(resolve('data', filename), 'utf-8');
+		fileCache.set(filename, content);
+	}
+	return content;
 }
 
 interface MetaProfile {
@@ -214,9 +220,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const { myTeam, enemyTeam, map, profileId, matchId } = await request.json();
 	const userId = locals.effectiveUserId;
 
+	// --- Input validation ---
+	if (!Array.isArray(myTeam) || !Array.isArray(enemyTeam)) {
+		return json({ error: 'myTeam and enemyTeam must be arrays' }, { status: 400 });
+	}
+
 	// --- Usage limit check ---
 	let activeClient = anthropic;
 	let activeModel = 'claude-sonnet-4-6';
+	let shouldRestoreOnError = false;
 
 	if (userId) {
 		const usage = await checkAdviceUsage(userId);
@@ -241,6 +253,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					{ status: 429 }
 				);
 			}
+			shouldRestoreOnError = true;
 		}
 	}
 
@@ -360,6 +373,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						err instanceof Error ? err.message : 'Stream error';
 					adviceSpan.setStatus({ code: SpanStatusCode.ERROR, message });
 					logger.error({ event: 'advice_error', userId, error: message }, 'Advice stream error');
+					// Restore usage credit on API failure (user shouldn't lose a call for errors)
+					if (shouldRestoreOnError && userId) {
+						try {
+							await restoreAdviceCall(userId);
+						} catch {
+							logger.warn(
+								{ event: 'advice_restore_failed', userId },
+								'Failed to restore advice call after error'
+							);
+						}
+					}
 					controller.enqueue(
 						encoder.encode(
 							`data: ${JSON.stringify({ error: message })}\n\n`

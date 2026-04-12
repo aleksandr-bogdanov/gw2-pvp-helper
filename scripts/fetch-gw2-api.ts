@@ -102,6 +102,27 @@ async function fetchSpecNames(ids: number[]): Promise<Map<number, string>> {
 	return new Map(specs.map((s) => [s.id, s.name]));
 }
 
+/** Fetch ALL elite specializations from the API (not just weapon-gated ones) */
+async function fetchAllEliteSpecs(): Promise<Map<number, string>> {
+	const allIds = await fetchJson<number[]>(
+		'https://api.guildwars2.com/v2/specializations'
+	);
+	const specs = new Map<number, string>();
+	// Fetch in chunks of 200
+	for (let i = 0; i < allIds.length; i += 200) {
+		const chunk = allIds.slice(i, i + 200);
+		const data = await fetchJson<{ id: number; name: string; elite: boolean }[]>(
+			`https://api.guildwars2.com/v2/specializations?ids=${chunk.join(',')}&lang=en`
+		);
+		for (const s of data) {
+			if (s.elite) {
+				specs.set(s.id, s.name);
+			}
+		}
+	}
+	return specs;
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -129,12 +150,12 @@ async function main() {
 		}
 	}
 
-	// Phase 2: Batch-fetch all skill names and spec names
+	// Phase 2: Batch-fetch all skill names and ALL elite spec names
 	console.log(`\n  Fetching ${allSkillIds.size} skill names...`);
 	const skillNames = await fetchSkillNames([...allSkillIds]);
 
-	console.log(`  Fetching ${allSpecIds.size} specialization names...`);
-	const specNames = await fetchSpecNames([...allSpecIds]);
+	console.log('  Fetching all elite specialization names...');
+	const specNames = await fetchAllEliteSpecs();
 
 	// Phase 3: Build output structure
 	for (const prof of PROFESSIONS) {

@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { db } from '$lib/server/db/index.js';
 import { matches, matchPlayers, players } from '$lib/server/db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 
 interface PlayerUpdate {
 	characterName: string;
@@ -40,61 +40,75 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		throw error(404, 'Match not found');
 	}
 
-	for (const r of ratings) {
-		if (!r.characterName) continue;
+	// Collect tag upsert names for batched lookup
+	const tagUpdates: { name: string; tag: string | null }[] = [];
 
-		// Update match_players fields
-		const mpUpdates: Record<string, unknown> = {};
-		if (r.ratingSkill !== undefined) {
-			mpUpdates.ratingSkill = r.ratingSkill && r.ratingSkill >= 1 && r.ratingSkill <= 5
-				? r.ratingSkill : null;
-		}
-		if (r.ratingFriendly !== undefined) {
-			mpUpdates.ratingFriendly = r.ratingFriendly && r.ratingFriendly >= 1 && r.ratingFriendly <= 5
-				? r.ratingFriendly : null;
-		}
-		if (r.newCharacterName !== undefined) {
-			mpUpdates.characterName = r.newCharacterName;
-		}
-		if (r.profession !== undefined) {
-			mpUpdates.profession = r.profession;
-		}
-		if (r.spec !== undefined) {
-			mpUpdates.spec = r.spec;
-		}
-		if (r.role !== undefined) {
-			mpUpdates.role = r.role;
-		}
+	await db.transaction(async (tx) => {
+		for (const r of ratings) {
+			if (!r.characterName) continue;
 
-		if (Object.keys(mpUpdates).length > 0) {
-			await db
-				.update(matchPlayers)
-				.set(mpUpdates)
-				.where(
-					and(
-						eq(matchPlayers.matchId, matchId),
-						eq(matchPlayers.characterName, r.characterName)
-					)
-				);
-		}
+			// Update match_players fields
+			const mpUpdates: Record<string, unknown> = {};
+			if (r.ratingSkill !== undefined) {
+				mpUpdates.ratingSkill = r.ratingSkill && r.ratingSkill >= 1 && r.ratingSkill <= 5
+					? r.ratingSkill : null;
+			}
+			if (r.ratingFriendly !== undefined) {
+				mpUpdates.ratingFriendly = r.ratingFriendly && r.ratingFriendly >= 1 && r.ratingFriendly <= 5
+					? r.ratingFriendly : null;
+			}
+			if (r.newCharacterName !== undefined) {
+				mpUpdates.characterName = r.newCharacterName;
+			}
+			if (r.profession !== undefined) {
+				mpUpdates.profession = r.profession;
+			}
+			if (r.spec !== undefined) {
+				mpUpdates.spec = r.spec;
+			}
+			if (r.role !== undefined) {
+				mpUpdates.role = r.role;
+			}
 
-		// Update tag in players metadata table (upsert) — scoped to user
-		if (r.tag !== undefined && userId) {
-			const name = r.newCharacterName ?? r.characterName;
-			const [existing] = await db
-				.select()
-				.from(players)
-				.where(and(eq(players.characterName, name), eq(players.userId, userId)));
-			if (existing) {
-				await db
-					.update(players)
-					.set({ tag: r.tag })
-					.where(and(eq(players.characterName, name), eq(players.userId, userId)));
-			} else {
-				await db.insert(players).values({ characterName: name, userId, tag: r.tag });
+			if (Object.keys(mpUpdates).length > 0) {
+				await tx
+					.update(matchPlayers)
+					.set(mpUpdates)
+					.where(
+						and(
+							eq(matchPlayers.matchId, matchId),
+							eq(matchPlayers.characterName, r.characterName)
+						)
+					);
+			}
+
+			// Collect tag updates for batched upsert
+			if (r.tag !== undefined && userId) {
+				tagUpdates.push({ name: r.newCharacterName ?? r.characterName, tag: r.tag });
 			}
 		}
-	}
+
+		// Batch tag upserts: single SELECT to find existing players, then batch updates/inserts
+		if (tagUpdates.length > 0 && userId) {
+			const tagNames = tagUpdates.map((t) => t.name);
+			const existingPlayers = await tx
+				.select({ characterName: players.characterName })
+				.from(players)
+				.where(and(inArray(players.characterName, tagNames), eq(players.userId, userId)));
+			const existingSet = new Set(existingPlayers.map((p) => p.characterName));
+
+			for (const { name, tag } of tagUpdates) {
+				if (existingSet.has(name)) {
+					await tx
+						.update(players)
+						.set({ tag })
+						.where(and(eq(players.characterName, name), eq(players.userId, userId)));
+				} else {
+					await tx.insert(players).values({ characterName: name, userId, tag });
+				}
+			}
+		}
+	});
 
 	return json({ success: true });
 };

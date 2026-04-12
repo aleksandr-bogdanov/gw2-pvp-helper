@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let { children } = $props<{ children: import('svelte').Snippet }>();
+	let { children }: { children: import('svelte').Snippet } = $props();
 
 	type AuthUser = { id: number; username: string; role: string } | null;
 
@@ -81,6 +81,8 @@
 			<div class="flex flex-col gap-3">
 				<input
 					type="password"
+					id="gw2-api-key"
+					aria-label="GW2 API Key"
 					bind:value={apiKey}
 					onkeydown={handleKeydown}
 					placeholder="Paste your GW2 API key"

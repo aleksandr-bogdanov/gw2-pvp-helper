@@ -50,7 +50,7 @@ CV runs in the browser. Server is a thin API layer. This means server costs stay
 | Training pipeline | Done | Screenshot + metadata collection, admin review, bulk export |
 | Observability | Done | Sentry + Honeycomb + Pino (all optional, skip if env vars unset) |
 | Health endpoint | Done | `/api/health` with DB connectivity check |
-| Dockerfile | Done | Multi-stage, Node 20 Alpine, bun install |
+| Dockerfile | Done | Multi-stage, Node 22 Alpine, bun install |
 | Security audit | Done | 3 batches, ~47 bugs fixed (SQL injection, XSS, IDOR, race conditions) |
 
 ---
@@ -111,7 +111,7 @@ LOG_LEVEL=info
 | Gap | Impact | When to fix |
 |-----|--------|-------------|
 | Only tested on 3440x1440 | Other resolutions may fail | After dogfooding, before public launch |
-| No landing page | Can't explain the app to new users | Before public launch |
+| ~~No landing page~~ | ~~Resolved~~ — landing page shipped in PR #52 | Done |
 | Players page: hardcoded limit=500, no pagination | Scales poorly | When it becomes a problem |
 | `matches.userProfileId` missing ON DELETE constraint | Orphaned refs possible | Next migration |
 | Some dead code in stores.ts | Clutter | Low priority cleanup |

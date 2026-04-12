@@ -102,6 +102,14 @@ export async function decrementProfileGens(userId: number): Promise<number> {
 	return updated?.remaining ?? -1;
 }
 
+/** Restore an advice call (rollback on API failure) */
+export async function restoreAdviceCall(userId: number): Promise<void> {
+	await db
+		.update(users)
+		.set({ adviceCallsRemaining: sql`${users.adviceCallsRemaining} + 1` })
+		.where(eq(users.id, userId));
+}
+
 /** Restore a profile gen (rollback on API failure) */
 export async function restoreProfileGen(userId: number): Promise<void> {
 	await db
