@@ -6,27 +6,25 @@ GW2 PvP match scouting app. Paste a scoreboard screenshot → CV pipeline detect
 
 ## Key Docs
 
-- `PRODUCTION-READINESS.md` — **read this first for any deployment, architecture, or feature work**. Covers: client-side scan migration, BYOK, usage limits, training data pipeline, admin dashboard, observability, financial model.
-- `ux.md` — UX & architecture spec (source of truth for UI behavior)
+- `docs/PRODUCTION-READINESS.md` — deployment status, architecture, costs, and remaining work
+- `docs/ux.md` — UX & architecture spec (source of truth for UI behavior)
 
 ## Tech Stack
 
 - **Framework**: SvelteKit 2 (Svelte 5 runes), Tailwind CSS 4
 - **Package manager**: Bun (for installs + scripts). Runtime is Node.js (no adapter-bun exists).
 - **Database**: PostgreSQL + Drizzle ORM
-- **CV Pipeline** (currently server, migrating to browser): Sharp → Canvas API, Tesseract.js → tesseract-wasm, HOG k-NN classifier (pure TS)
+- **CV Pipeline**: Client-side (Canvas + tesseract-wasm + HOG k-NN) with server-side fallback (Sharp + Tesseract.js)
 - **AI**: Anthropic SDK — Sonnet 4.6 (advice streaming), Opus 4.6 (profile generation)
 - **Testing**: Vitest
 - **Deployment target**: Railway (Hobby plan), adapter-node
 
-## Architecture Direction
+## Architecture
 
-The CV scan pipeline is moving from server-side to client-side (browser). After migration:
-- Browser: Canvas API + tesseract-wasm + HOG classifier → sends 1 KB JSON to server
-- Server: thin API — auth, Postgres, Anthropic proxy, training data storage
+- **Browser**: Canvas + tesseract-wasm + HOG classifier → sends 1 KB JSON to server
+- **Server**: thin API — auth, Postgres, Anthropic proxy, training data storage
 - Low-confidence scans upload JPEG Q85 screenshots for training
-
-See `PRODUCTION-READINESS.md` §2 and §5.3 for full migration plan.
+- **Task runner**: `just` (justfile). Not `bun run` / npm scripts.
 
 ## Rules
 
@@ -56,7 +54,8 @@ Dark theme, gaming HUD aesthetic. Glanceable on a second monitor in a dim room. 
 
 ## Key Directories
 
-- `src/lib/server/scan/` — server-side CV pipeline (anchor, classifier, minimap, ocr, layouts)
+- `src/lib/scan-client/` — client-side CV pipeline (browser, Canvas + tesseract-wasm)
+- `src/lib/server/scan/` — server-side CV pipeline fallback (Sharp + Tesseract.js)
 - `src/lib/server/db/schema.ts` — Drizzle schema (all tables)
 - `src/routes/api/` — all API endpoints (scan, advice, match, profiles, generate-profile)
 - `data/` — game data JSON, prompt templates, reference icons, minimap thumbs, X-button templates
