@@ -65,7 +65,6 @@ describe('BYOK Key Lifecycle in DB', () => {
 			.insert(users)
 			.values({
 				username: 'byokuser',
-				inviteCodeUsed: 'test-code',
 				byokApiKeyEncrypted: encrypted
 			})
 			.returning();
@@ -81,7 +80,6 @@ describe('BYOK Key Lifecycle in DB', () => {
 			.insert(users)
 			.values({
 				username: 'delkeyuser',
-				inviteCodeUsed: 'test-code',
 				byokApiKeyEncrypted: encrypted,
 				byokModelPreference: 'claude-opus-4-6'
 			})
@@ -102,7 +100,6 @@ describe('BYOK Key Lifecycle in DB', () => {
 			.insert(users)
 			.values({
 				username: 'nobyokuser',
-				inviteCodeUsed: 'test-code'
 			})
 			.returning();
 

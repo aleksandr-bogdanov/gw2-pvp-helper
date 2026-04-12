@@ -5,8 +5,8 @@ import { pgTable, serial, text, boolean, integer, timestamp, uuid, jsonb } from 
 export const users = pgTable('users', {
 	id: serial('id').primaryKey(),
 	username: text('username').unique().notNull(),
-	passwordHash: text('password_hash'),
-	inviteCodeUsed: text('invite_code_used').notNull(),
+	gw2AccountId: text('gw2_account_id').unique(),
+	gw2ApiKeyEncrypted: text('gw2_api_key_encrypted'),
 	role: text('role').default('user').notNull(),
 	deviceInfo: jsonb('device_info'),
 	adviceCallsRemaining: integer('advice_calls_remaining').default(15).notNull(),
@@ -23,12 +23,6 @@ export const sessions = pgTable('sessions', {
 	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
 	expiresAt: timestamp('expires_at').notNull(),
 	impersonatingUserId: integer('impersonating_user_id').references(() => users.id, { onDelete: 'set null' })
-});
-
-export const usedInviteCodes = pgTable('used_invite_codes', {
-	code: text('code').primaryKey(),
-	userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-	usedAt: timestamp('used_at').defaultNow().notNull()
 });
 
 // --- Game Data ---

@@ -29,7 +29,6 @@ async function createTestUser(overrides: Partial<typeof users.$inferInsert> = {}
 		.insert(users)
 		.values({
 			username: `user_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-			inviteCodeUsed: 'test-code',
 			...overrides
 		})
 		.returning();

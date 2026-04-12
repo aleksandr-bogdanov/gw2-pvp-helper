@@ -26,7 +26,6 @@ async function createTestUser(username: string, role: 'user' | 'admin' = 'user')
 		.insert(users)
 		.values({
 			username,
-			inviteCodeUsed: `code-${username}`,
 			role,
 			consentGivenAt: new Date()
 		})

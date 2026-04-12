@@ -1,8 +1,8 @@
 import { db } from './db/index.js';
-import { users, sessions, usedInviteCodes } from './db/schema.js';
+import { users, sessions } from './db/schema.js';
 import { eq, and, gt } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
-import bcrypt from 'bcryptjs';
+import { encrypt } from './crypto.js';
 
 const SESSION_COOKIE_NAME = 'gw2_session';
 const SESSION_TTL_DAYS = 30;
@@ -10,114 +10,68 @@ const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
 
 export { SESSION_COOKIE_NAME };
 
-/** Parse INVITE_CODES once at module load */
-const VALID_INVITE_CODES = new Set(
-	(process.env.INVITE_CODES ?? '').split(',').map((c) => c.trim()).filter(Boolean)
+/** Parse ADMIN_ACCOUNTS once at module load */
+const ADMIN_ACCOUNTS = new Set(
+	(process.env.ADMIN_ACCOUNTS ?? 'Korsvian.6794').split(',').map((a) => a.trim()).filter(Boolean)
 );
 
-/** Validate an invite code against INVITE_CODES env var and used_invite_codes table */
-export async function validateInviteCode(code: string): Promise<{ valid: boolean; reason?: string }> {
-	if (!VALID_INVITE_CODES.has(code)) {
-		return { valid: false, reason: 'Invalid invite code' };
-	}
-
-	// Check if already used
-	const [used] = await db
-		.select()
-		.from(usedInviteCodes)
-		.where(eq(usedInviteCodes.code, code));
-
-	if (used) {
-		return { valid: false, reason: 'Invite code already used' };
-	}
-
-	return { valid: true };
+/** Check if a GW2 account name should be admin */
+export function isAdminAccount(accountName: string): boolean {
+	return ADMIN_ACCOUNTS.has(accountName);
 }
 
-const BCRYPT_ROUNDS = 12;
+/** Find or create a user by GW2 account ID. Returns session token. */
+export async function loginWithGw2(
+	gw2AccountId: string,
+	gw2AccountName: string,
+	gw2ApiKey: string,
+	deviceInfo?: Record<string, unknown>
+): Promise<{ token: string; userId: number; username: string; role: string; isNewUser: boolean }> {
+	const token = randomUUID();
+	const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+	const role = isAdminAccount(gw2AccountName) ? 'admin' : 'user';
+	const encryptedKey = encrypt(gw2ApiKey);
 
-/** Hash a password with bcrypt */
-export async function hashPassword(password: string): Promise<string> {
-	return bcrypt.hash(password, BCRYPT_ROUNDS);
-}
-
-/** Verify a password against a bcrypt hash */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-	return bcrypt.compare(password, hash);
-}
-
-/** Authenticate a user with username + password. Returns session token or null. */
-export async function loginUser(
-	username: string,
-	password: string
-): Promise<{ token: string; userId: number; username: string; role: string } | null> {
-	const [user] = await db
-		.select({
-			id: users.id,
-			username: users.username,
-			passwordHash: users.passwordHash,
-			role: users.role
-		})
+	// Try to find existing user
+	const [existing] = await db
+		.select({ id: users.id, username: users.username })
 		.from(users)
-		.where(eq(users.username, username));
+		.where(eq(users.gw2AccountId, gw2AccountId));
 
-	if (!user || !user.passwordHash) return null;
+	if (existing) {
+		// Update account name (may change), role, and API key on every login
+		await db
+			.update(users)
+			.set({
+				username: gw2AccountName,
+				gw2ApiKeyEncrypted: encryptedKey,
+				role,
+				lastSeenAt: new Date()
+			})
+			.where(eq(users.id, existing.id));
 
-	const valid = await verifyPassword(password, user.passwordHash);
-	if (!valid) return null;
+		await db.insert(sessions).values({ token, userId: existing.id, expiresAt });
 
-	const token = randomUUID();
-	const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+		return { token, userId: existing.id, username: gw2AccountName, role, isNewUser: false };
+	}
 
-	await db.insert(sessions).values({
-		token,
-		userId: user.id,
-		expiresAt
-	});
-
-	return { token, userId: user.id, username: user.username, role: user.role };
-}
-
-/** Create a user + session, mark invite code as used. Returns session token.
- *  Wrapped in a transaction to prevent race conditions where the same invite
- *  code could create multiple users. */
-export async function createUser(
-	username: string,
-	inviteCode: string,
-	consentGiven: boolean,
-	deviceInfo?: Record<string, unknown>,
-	password?: string
-): Promise<{ token: string; userId: number }> {
-	const passwordHash = password ? await hashPassword(password) : null;
-	const token = randomUUID();
-	const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
-
+	// Create new user
 	const result = await db.transaction(async (tx) => {
 		const [user] = await tx
 			.insert(users)
 			.values({
-				username,
-				passwordHash,
-				inviteCodeUsed: inviteCode,
+				username: gw2AccountName,
+				gw2AccountId,
+				gw2ApiKeyEncrypted: encryptedKey,
+				role,
 				deviceInfo: deviceInfo ?? null,
-				consentGivenAt: consentGiven ? new Date() : null
+				consentGivenAt: new Date()
 			})
 			.returning();
 
-		// Mark invite code as used
-		await tx.insert(usedInviteCodes).values({
-			code: inviteCode,
-			userId: user.id
-		});
+		await tx.insert(sessions).values({ token, userId: user.id, expiresAt });
 
-		// Create session
-		await tx.insert(sessions).values({
-			token,
-			userId: user.id,
-			expiresAt
-		});
-
-		return { token, userId: user.id };
+		return { token, userId: user.id, username: gw2AccountName, role, isNewUser: true };
 	});
 
 	return result;
@@ -127,7 +81,6 @@ export async function createUser(
 export async function resolveSession(
 	token: string
 ): Promise<{ id: number; username: string; role: string; impersonatingUserId: number | null } | null> {
-	// Single JOIN query instead of two sequential SELECTs
 	const results = await db
 		.select({
 			userId: users.id,
@@ -175,8 +128,6 @@ export async function deleteSession(token: string): Promise<void> {
 
 /** Delete a user and all associated data (GDPR) */
 export async function deleteUser(userId: number): Promise<void> {
-	// Cascade deletes handle sessions, used_invite_codes, user_profiles, matches
-	// (all FKs have onDelete: 'cascade')
 	await db.delete(users).where(eq(users.id, userId));
 }
 
