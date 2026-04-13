@@ -39,6 +39,26 @@ try {
 	// Also clean up any public-schema table from previous bootstrap attempts
 	await sql`DROP TABLE IF EXISTS "public"."__drizzle_migrations"`;
 
+	// Bootstrap: if migrations table is empty but DB has tables from push era,
+	// seed hashes for migrations 0000-0011 so we don't re-run them
+	if (appliedHashes.size === 0) {
+		const tables = await sql`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`;
+		const tableNames = new Set(tables.map(r => r.tablename));
+		if (tableNames.has('users') && tableNames.has('matches')) {
+			console.log('[migrate] Detected existing DB from push era — seeding migration journal');
+			const journal = JSON.parse(readFileSync(resolve(ROOT, 'drizzle/meta/_journal.json'), 'utf-8'));
+			for (const entry of journal.entries) {
+				if (entry.idx > 11) continue;
+				const sqlPath = resolve(ROOT, 'drizzle', `${entry.tag}.sql`);
+				const content = readFileSync(sqlPath).toString();
+				const hash = crypto.createHash('sha256').update(content).digest('hex');
+				await sql`INSERT INTO "drizzle"."__drizzle_migrations" (hash, created_at) VALUES (${hash}, ${entry.when})`;
+				appliedHashes.add(hash);
+			}
+			console.log('[migrate] Seeded 12 existing migrations');
+		}
+	}
+
 	// Read journal
 	const journal = JSON.parse(readFileSync(resolve(ROOT, 'drizzle/meta/_journal.json'), 'utf-8'));
 
