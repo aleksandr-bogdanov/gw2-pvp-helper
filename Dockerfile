@@ -25,7 +25,7 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/src/lib/server/db/schema.ts ./src/lib/server/db/schema.ts
-COPY --from=builder /app/scripts/bootstrap-migrations.mjs ./scripts/bootstrap-migrations.mjs
+COPY --from=builder /app/scripts/migrate.mjs ./scripts/migrate.mjs
 
 # Data files for prompt templates + reference icons
 COPY --from=builder /app/data ./data
